@@ -94,12 +94,26 @@ function createFixture({
       nodes.set(node.id, node);
     },
   };
+  const makeSurface = () => ({
+    children: [],
+    classList: makeClassList(),
+    querySelector(selector) {
+      const kind = /data-dream-surface-veil="([^"]+)"/.exec(selector)?.[1];
+      return this.children.find((node) => node.attributes?.get("data-dream-surface-veil") === kind) || null;
+    },
+    prepend(node) {
+      node.parentElement = this;
+      this.children.unshift(node);
+    },
+  });
   const shellMain = {
+    ...makeSurface(),
     classList: makeClassList(),
     getBoundingClientRect() {
       return { left: 290, top: 36, width: 990, height: 784 };
     },
   };
+  const shellSidebar = makeSurface();
   const routeClasses = new Set();
   const utilityClasses = new Set();
   const utilityNode = { classList: makeClassList(utilityClasses) };
@@ -129,13 +143,19 @@ function createFixture({
     return {
       id: "",
       dataset: {},
+      attributes: new Map(),
       style: {},
       classList: makeClassList(),
       parentElement: null,
       textContent: "",
       innerHTML: "",
-      setAttribute() {},
-      remove() { nodes.delete(this.id); },
+      setAttribute(name, value) { this.attributes.set(name, String(value)); },
+      remove() {
+        nodes.delete(this.id);
+        if (this.parentElement?.children) {
+          this.parentElement.children = this.parentElement.children.filter((node) => node !== this);
+        }
+      },
     };
   };
   if (staleSkin) {
@@ -155,7 +175,7 @@ function createFixture({
     getElementById(id) { return nodes.get(id) ?? null; },
     querySelector(selector) {
       if (selector === "main.main-surface") return hasShell ? shellMain : null;
-      if (selector === "aside.app-shell-left-panel") return hasShell ? {} : null;
+      if (selector === "aside.app-shell-left-panel") return hasShell ? shellSidebar : null;
       if (selector === '[role="main"]:has([data-testid="home-icon"])') {
         return hasShell && homePresent ? routeMain : null;
       }
@@ -166,6 +186,9 @@ function createFixture({
       if (selector === ".dream-task") return routeClasses.has("dream-task") ? [routeMain] : [];
       if (selector === ".dream-home-utility") {
         return utilityClasses.has("dream-home-utility") ? [utilityNode] : [];
+      }
+      if (selector === "[data-dream-surface-veil]") {
+        return [...shellMain.children, ...shellSidebar.children];
       }
       if (!staleSkin) return [];
       if (selector === ".dream-home") return [staleHome];
@@ -234,6 +257,8 @@ function createFixture({
     revokedUrls,
     routeClasses,
     utilityClasses,
+    shellMain,
+    shellSidebar,
     setShellPresent(value) { hasShell = value; },
   };
 }
@@ -241,6 +266,7 @@ function createFixture({
 const main = createFixture({ shellPresent: true });
 const mainResult = vm.runInNewContext(payload, main.context);
 assert.equal(mainResult.installed, true);
+assert.equal(mainResult.version, "1.3.2");
 assert.equal(main.rootClasses.has("codex-dream-skin"), true);
 assert.equal(main.rootStyles.get("--dream-art"), 'url("blob:fixture-1")');
 assert.equal(main.nodes.has("codex-dream-skin-style"), true);
@@ -250,7 +276,10 @@ assert.equal(main.rootClasses.has("dream-art-standard"), true);
 assert.equal(main.rootClasses.has("dream-task-ambient"), true);
 assert.equal(main.rootClasses.has("dream-motion-enabled"), true);
 assert.equal(main.rootClasses.has("dream-reading-enabled"), true);
-assert.equal(main.rootStyles.get("--dream-user-main-alpha"), "30%");
+assert.equal(main.rootStyles.has("--dream-user-main-alpha"), false);
+assert.equal(main.rootStyles.get("--dream-user-control-alpha"), "72%");
+assert.equal(main.shellMain.children[0].style.opacity, "0.44");
+assert.equal(main.shellSidebar.children[0].style.opacity, "0.44");
 assert.equal(main.rootStyles.get("--dream-wallpaper-brightness"), "1.00");
 assert.equal(main.rootStyles.get("--dream-wallpaper-blur"), "0.00px");
 assert.equal(main.routeClasses.has("dream-task"), true);
@@ -396,11 +425,12 @@ const userCustomized = createFixture({
   },
 });
 const customizedResult = vm.runInNewContext(payload, userCustomized.context);
-assert.equal(customizedResult.version, "1.3.0");
+assert.equal(customizedResult.version, "1.3.2");
 assert.equal(userCustomized.rootClasses.has("dream-motion-disabled"), true);
 assert.equal(userCustomized.rootClasses.has("dream-reading-disabled"), true);
-assert.equal(userCustomized.rootStyles.get("--dream-user-main-alpha"), "12%");
-assert.equal(userCustomized.rootStyles.get("--dream-user-sidebar-alpha"), "28%");
+assert.equal(userCustomized.rootStyles.get("--dream-user-control-alpha"), "58%");
+assert.equal(userCustomized.shellMain.children[0].style.opacity, "0.26");
+assert.equal(userCustomized.shellSidebar.children[0].style.opacity, "0.26");
 assert.equal(userCustomized.rootStyles.get("--dream-wallpaper-brightness"), "0.55");
 assert.equal(userCustomized.rootStyles.get("--dream-wallpaper-blur"), "4.00px");
 
@@ -408,8 +438,13 @@ assert.match(template, /data-dream-setting="transparency"/);
 assert.match(template, /image\/gif,image\/avif/);
 assert.match(template, /MAX_LOCAL_WALLPAPER_DIMENSION = 16384/);
 assert.match(template, /MAX_LOCAL_WALLPAPER_PIXELS = 50_000_000/);
+assert.match(template, /requestAnimationFrame\(applyFrame\)/);
+assert.match(template, /scheduleSettingsPersistence\(\)/);
+assert.match(template, /data-dream-surface-veil/);
 assert.match(css, /dream-reading-enabled/);
 assert.match(css, /@keyframes dream-wallpaper-drift/);
 assert.match(css, /#codex-dream-skin-controls/);
+assert.match(css, /will-change: opacity/);
+assert.match(css, /#codex-dream-skin-controls\s*\{[^}]*contain: style/s);
 
 console.log("PASS: renderer applies adaptive theme metadata and preserves transparent auxiliary windows.");

@@ -3,6 +3,7 @@
   const STYLE_ID = "codex-dream-skin-style";
   const CHROME_ID = "codex-dream-skin-chrome";
   const CONTROLS_ID = "codex-dream-skin-controls";
+  const SURFACE_VEIL_ATTRIBUTE = "data-dream-surface-veil";
   const SETTINGS_KEY = "codex-dream-skin-user-settings-v1";
   const WALLPAPER_DB_NAME = "codex-dream-skin-local-assets";
   const WALLPAPER_STORE_NAME = "wallpapers";
@@ -62,6 +63,15 @@
     "--dream-user-task-far-alpha",
     "--dream-wallpaper-brightness",
     "--dream-wallpaper-blur",
+  ];
+  const LEGACY_TRANSPARENCY_PROPERTIES = [
+    "--dream-user-main-alpha",
+    "--dream-user-main-mid-alpha",
+    "--dream-user-main-far-alpha",
+    "--dream-user-sidebar-alpha",
+    "--dream-user-task-edge-alpha",
+    "--dream-user-task-mid-alpha",
+    "--dream-user-task-far-alpha",
   ];
   const HOME_UTILITY_CLASS = "dream-home-utility";
   const installToken = {};
@@ -130,6 +140,17 @@
   if (previous?.observer) previous.observer.disconnect();
   if (previous?.timer) clearInterval(previous.timer);
   if (previous?.scheduler?.timeout) clearTimeout(previous.scheduler.timeout);
+  if (previous?.settingScheduler?.frame != null) {
+    if (previous.settingScheduler.frameType === "animation" &&
+      typeof cancelAnimationFrame === "function") {
+      cancelAnimationFrame(previous.settingScheduler.frame);
+    } else {
+      clearTimeout(previous.settingScheduler.frame);
+    }
+  }
+  if (previous?.settingScheduler?.persistTimer) {
+    clearTimeout(previous.settingScheduler.persistTimer);
+  }
   for (const url of new Set([
     previous?.artUrl,
     previous?.injectedArtUrl,
@@ -165,33 +186,92 @@
     };
   };
   const userSettings = readUserSettings();
+  const surfaceVeils = {
+    main: null,
+    sidebar: null,
+  };
+  const settingScheduler = {
+    frame: null,
+    frameType: null,
+    groups: new Set(),
+    persistTimer: null,
+  };
+  const setRootProperty = (root, name, value) => {
+    if (root.style.getPropertyValue?.(name) === value) return;
+    root.style.setProperty(name, value);
+  };
   const persistUserSettings = () => {
+    if (settingScheduler.persistTimer) clearTimeout(settingScheduler.persistTimer);
+    settingScheduler.persistTimer = null;
     try { window.localStorage?.setItem(SETTINGS_KEY, JSON.stringify(userSettings)); } catch {}
   };
-  const applyUserSettings = (root) => {
-    const mainAlpha = clamp(1 - userSettings.transparency / 100, .12, .78);
+  const scheduleSettingsPersistence = () => {
+    if (settingScheduler.persistTimer) clearTimeout(settingScheduler.persistTimer);
+    settingScheduler.persistTimer = setTimeout(persistUserSettings, 180);
+  };
+  const applyTransparencySettings = (root) => {
+    const mainAlpha = clamp(1 - userSettings.transparency / 100, .12, .74);
     const percent = (value) => `${Math.round(clamp(value) * 100)}%`;
-    root.style.setProperty("--dream-user-main-alpha", percent(mainAlpha));
-    root.style.setProperty("--dream-user-main-mid-alpha", percent(mainAlpha * .68));
-    root.style.setProperty("--dream-user-main-far-alpha", percent(mainAlpha * .36));
-    root.style.setProperty("--dream-user-sidebar-alpha", percent(Math.min(.9, mainAlpha + .16)));
-    root.style.setProperty("--dream-user-control-alpha", percent(Math.min(.96, mainAlpha + .5)));
-    root.style.setProperty("--dream-user-task-edge-alpha", percent(Math.min(.92, mainAlpha + .56)));
-    root.style.setProperty("--dream-user-task-mid-alpha", percent(Math.min(.88, mainAlpha + .48)));
-    root.style.setProperty("--dream-user-task-far-alpha", percent(Math.min(.82, mainAlpha + .36)));
-    root.style.setProperty(
+    setRootProperty(root, "--dream-user-control-alpha", percent(clamp(mainAlpha + .42, .58, .94)));
+    for (const property of LEGACY_TRANSPARENCY_PROPERTIES) {
+      if (root.style.getPropertyValue?.(property)) root.style.removeProperty(property);
+    }
+
+    const mainOpacity = surfaceVeils.main?.parentElement?.classList.contains("dream-home-shell")
+      ? mainAlpha
+      : clamp(mainAlpha + .14, .24, .78);
+    const sidebarOpacity = clamp(mainAlpha + .14, .2, .84);
+    const setVeilOpacity = (veil, value) => {
+      if (!veil?.style) return;
+      const opacity = clamp(value).toFixed(2);
+      if (veil.style.opacity !== opacity) veil.style.opacity = opacity;
+    };
+    setVeilOpacity(surfaceVeils.main, mainOpacity);
+    setVeilOpacity(surfaceVeils.sidebar, sidebarOpacity);
+  };
+  const applyWallpaperSettings = (root) => {
+    setRootProperty(
+      root,
       "--dream-wallpaper-brightness",
       (userSettings.brightness / 100).toFixed(2),
     );
-    root.style.setProperty(
+    setRootProperty(
+      root,
       "--dream-wallpaper-blur",
       `${clamp((100 - userSettings.sharpness) / 20, 0, 4).toFixed(2)}px`,
     );
+  };
+  const applyToggleSettings = (root) => {
     root.classList.toggle("dream-motion-enabled", userSettings.motion);
     root.classList.toggle("dream-motion-disabled", !userSettings.motion);
     root.classList.toggle("dream-reading-enabled", userSettings.readingMode);
     root.classList.toggle("dream-reading-disabled", !userSettings.readingMode);
-    persistUserSettings();
+  };
+  const applyUserSettings = (root) => {
+    applyTransparencySettings(root);
+    applyWallpaperSettings(root);
+    applyToggleSettings(root);
+  };
+  const scheduleUserSettingsApply = (group) => {
+    settingScheduler.groups.add(group);
+    if (settingScheduler.frame != null) return;
+    const applyFrame = () => {
+      settingScheduler.frame = null;
+      settingScheduler.frameType = null;
+      const groups = new Set(settingScheduler.groups);
+      settingScheduler.groups.clear();
+      const root = document.documentElement;
+      if (!root || window.__CODEX_DREAM_SKIN_DISABLED__) return;
+      if (groups.has("transparency")) applyTransparencySettings(root);
+      if (groups.has("wallpaper")) applyWallpaperSettings(root);
+    };
+    if (typeof requestAnimationFrame === "function") {
+      settingScheduler.frameType = "animation";
+      settingScheduler.frame = requestAnimationFrame(applyFrame);
+    } else {
+      settingScheduler.frameType = "timeout";
+      settingScheduler.frame = setTimeout(applyFrame, 16);
+    }
   };
   let profile = {
     ...defaultProfile,
@@ -200,7 +280,7 @@
   const existingStyle = document.getElementById(STYLE_ID);
   if (existingStyle) {
     existingStyle.textContent = cssText;
-    existingStyle.dataset.dreamVersion = "4";
+    existingStyle.dataset.dreamVersion = "5";
   }
 
   const analyzeArt = (url = activeArtUrl) => new Promise((resolve) => {
@@ -525,18 +605,20 @@
     const toggle = controls.querySelector(".dream-controls__toggle");
     const wallpaperInput = controls.querySelector("[data-dream-wallpaper-input]");
     const wallpaperSelect = controls.querySelector("[data-dream-wallpaper-select]");
-    const syncControls = () => {
-      for (const key of ["transparency", "brightness", "sharpness"]) {
-        const input = controls.querySelector(`[data-dream-setting="${key}"]`);
-        const output = controls.querySelector(`[data-dream-output="${key}"]`);
+    const syncControl = (key) => {
+      const input = controls.querySelector(`[data-dream-setting="${key}"]`);
+      const output = controls.querySelector(`[data-dream-output="${key}"]`);
+      if (["motion", "readingMode"].includes(key)) {
+        input.checked = userSettings[key];
+        output.value = userSettings[key] ? "开启" : "关闭";
+      } else {
         input.value = String(userSettings[key]);
         output.value = `${userSettings[key]}%`;
       }
-      for (const key of ["motion", "readingMode"]) {
-        const input = controls.querySelector(`[data-dream-setting="${key}"]`);
-        const output = controls.querySelector(`[data-dream-output="${key}"]`);
-        input.checked = userSettings[key];
-        output.value = userSettings[key] ? "开启" : "关闭";
+    };
+    const syncControls = () => {
+      for (const key of ["transparency", "brightness", "sharpness", "motion", "readingMode"]) {
+        syncControl(key);
       }
     };
     toggle.addEventListener("click", () => {
@@ -550,17 +632,21 @@
       toggle.focus();
     });
     for (const key of ["transparency", "brightness", "sharpness"]) {
-      controls.querySelector(`[data-dream-setting="${key}"]`).addEventListener("input", (event) => {
+      const input = controls.querySelector(`[data-dream-setting="${key}"]`);
+      input.addEventListener("input", (event) => {
         userSettings[key] = Number(event.currentTarget.value);
-        syncControls();
-        applyUserSettings(document.documentElement);
+        syncControl(key);
+        scheduleUserSettingsApply(key === "transparency" ? "transparency" : "wallpaper");
+        scheduleSettingsPersistence();
       });
+      input.addEventListener("change", persistUserSettings);
     }
     for (const key of ["motion", "readingMode"]) {
       controls.querySelector(`[data-dream-setting="${key}"]`).addEventListener("change", (event) => {
         userSettings[key] = Boolean(event.currentTarget.checked);
-        syncControls();
-        applyUserSettings(document.documentElement);
+        syncControl(key);
+        applyToggleSettings(document.documentElement);
+        persistUserSettings();
       });
     }
     wallpaperSelect.addEventListener("click", () => wallpaperInput.click());
@@ -663,9 +749,25 @@
     document.querySelectorAll(".dream-task").forEach((node) => node.classList.remove("dream-task"));
     document.querySelectorAll(".dream-home-shell").forEach((node) => node.classList.remove("dream-home-shell"));
     document.querySelectorAll(`.${HOME_UTILITY_CLASS}`).forEach((node) => node.classList.remove(HOME_UTILITY_CLASS));
+    document.querySelectorAll(`[${SURFACE_VEIL_ATTRIBUTE}]`).forEach((node) => node.remove());
+    surfaceVeils.main = null;
+    surfaceVeils.sidebar = null;
     document.getElementById(STYLE_ID)?.remove();
     document.getElementById(CHROME_ID)?.remove();
     document.getElementById(CONTROLS_ID)?.remove();
+  };
+
+  const ensureSurfaceVeil = (surface, kind) => {
+    const selector = `:scope > [${SURFACE_VEIL_ATTRIBUTE}="${kind}"]`;
+    let veil = surface?.querySelector?.(selector) || null;
+    if (!veil && typeof surface?.prepend === "function") {
+      veil = document.createElement("div");
+      veil.className = "dream-surface-veil";
+      veil.setAttribute(SURFACE_VEIL_ATTRIBUTE, kind);
+      veil.setAttribute("aria-hidden", "true");
+      surface.prepend(veil);
+    }
+    return veil;
   };
 
   const applyProfile = (root) => {
@@ -716,7 +818,6 @@
     }
 
     root.classList.add("codex-dream-skin");
-    applyProfile(root);
 
     let style = document.getElementById(STYLE_ID);
     if (!style) {
@@ -724,9 +825,9 @@
       style.id = STYLE_ID;
       (document.head || root).appendChild(style);
     }
-    if (style.dataset.dreamVersion !== "4") {
+    if (style.dataset.dreamVersion !== "5") {
       style.textContent = cssText;
-      style.dataset.dreamVersion = "4";
+      style.dataset.dreamVersion = "5";
     }
 
     const home = document.querySelector('[role="main"]:has([data-testid="home-icon"])');
@@ -740,6 +841,9 @@
     }
     for (const candidate of utilityBars) candidate.classList.add(HOME_UTILITY_CLASS);
     shellMain.classList.toggle("dream-home-shell", Boolean(home));
+    surfaceVeils.main = ensureSurfaceVeil(shellMain, "main");
+    surfaceVeils.sidebar = ensureSurfaceVeil(shellSidebar, "sidebar");
+    applyProfile(root);
 
     let chrome = document.getElementById(CHROME_ID);
     if (!chrome || chrome.parentElement !== document.body) {
@@ -770,6 +874,17 @@
     state?.observer?.disconnect();
     if (state?.timer) clearInterval(state.timer);
     if (state?.scheduler?.timeout) clearTimeout(state.scheduler.timeout);
+    if (state?.settingScheduler?.frame != null) {
+      if (state.settingScheduler.frameType === "animation" &&
+        typeof cancelAnimationFrame === "function") {
+        cancelAnimationFrame(state.settingScheduler.frame);
+      } else {
+        clearTimeout(state.settingScheduler.frame);
+      }
+    }
+    if (state?.settingScheduler?.persistTimer) {
+      clearTimeout(state.settingScheduler.persistTimer);
+    }
     for (const url of new Set([
       state?.artUrl,
       state?.injectedArtUrl,
@@ -804,6 +919,8 @@
     observer,
     timer,
     scheduler,
+    settingScheduler,
+    surfaceVeils,
     artUrl: injectedArtUrl,
     injectedArtUrl,
     localArtUrl,
@@ -812,7 +929,7 @@
     config,
     userSettings,
     installToken,
-    version: "1.3.0",
+    version: "1.3.2",
   };
   ensure();
   refreshProfileForArt(activeArtUrl);
@@ -824,5 +941,5 @@
     wallpaperState.error = true;
     updateWallpaperStatus();
   });
-  return { installed: true, version: "1.3.0", adaptive: true, controls: true };
+  return { installed: true, version: "1.3.2", adaptive: true, controls: true };
 })(__DREAM_CSS_JSON__, __DREAM_ART_JSON__, __DREAM_THEME_JSON__)
