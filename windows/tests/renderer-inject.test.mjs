@@ -266,7 +266,7 @@ function createFixture({
 const main = createFixture({ shellPresent: true });
 const mainResult = vm.runInNewContext(payload, main.context);
 assert.equal(mainResult.installed, true);
-assert.equal(mainResult.version, "1.3.2");
+assert.equal(mainResult.version, "1.3.3");
 assert.equal(main.rootClasses.has("codex-dream-skin"), true);
 assert.equal(main.rootStyles.get("--dream-art"), 'url("blob:fixture-1")');
 assert.equal(main.nodes.has("codex-dream-skin-style"), true);
@@ -425,7 +425,7 @@ const userCustomized = createFixture({
   },
 });
 const customizedResult = vm.runInNewContext(payload, userCustomized.context);
-assert.equal(customizedResult.version, "1.3.2");
+assert.equal(customizedResult.version, "1.3.3");
 assert.equal(userCustomized.rootClasses.has("dream-motion-disabled"), true);
 assert.equal(userCustomized.rootClasses.has("dream-reading-disabled"), true);
 assert.equal(userCustomized.rootStyles.get("--dream-user-control-alpha"), "58%");
@@ -442,6 +442,10 @@ assert.match(template, /requestAnimationFrame\(applyFrame\)/);
 assert.match(template, /scheduleSettingsPersistence\(\)/);
 assert.match(template, /data-dream-surface-veil/);
 assert.match(css, /dream-reading-enabled/);
+assert.match(css, /data-user-message-bubble="true"/);
+assert.match(css, /data-local-conversation-final-assistant="true"/);
+assert.match(css, /data-content-search-unit-key\$=":assistant"/);
+assert.doesNotMatch(css, /dream-reading-enabled \.dream-task\s+:where/);
 assert.match(css, /@keyframes dream-wallpaper-drift/);
 assert.match(css, /#codex-dream-skin-controls/);
 assert.match(css, /will-change: opacity/);

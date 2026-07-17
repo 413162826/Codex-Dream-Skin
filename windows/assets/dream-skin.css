@@ -429,9 +429,25 @@ html.codex-dream-skin article {
   color: var(--dream-text);
 }
 
-/* Reading enhancement is deliberately scoped to task prose. It strengthens
-   long-form content without dimming the wallpaper or replacing native cards. */
-html.codex-dream-skin.dream-reading-enabled .dream-task
+/* Reading enhancement follows stable conversation attributes instead of a
+   route wrapper. This keeps ordinary messages, Markdown and code readable
+   without placing another veil over the whole task surface. */
+html.codex-dream-skin.dream-reading-enabled main.main-surface
+  [data-user-message-bubble="true"] {
+  color: var(--dream-text) !important;
+  border: 1px solid color-mix(in oklab, var(--dream-line) 48%, transparent) !important;
+  background: var(--dream-reading-surface-strong) !important;
+  box-shadow: 0 6px 20px color-mix(in oklab, var(--dream-canvas) 10%, transparent) !important;
+  text-shadow: 0 1px 1px color-mix(in oklab, var(--dream-surface) 42%, transparent);
+}
+
+html.codex-dream-skin.dream-reading-enabled main.main-surface
+  [data-local-conversation-final-assistant="true"] {
+  color: var(--dream-text) !important;
+}
+
+html.codex-dream-skin.dream-reading-enabled main.main-surface
+  [data-content-search-unit-key$=":assistant"]
   :where([class*="_markdownContent_"], .markdown, .prose) {
   position: relative;
   isolation: isolate;
@@ -439,7 +455,8 @@ html.codex-dream-skin.dream-reading-enabled .dream-task
   text-shadow: 0 1px 1px color-mix(in oklab, var(--dream-surface) 42%, transparent);
 }
 
-html.codex-dream-skin.dream-reading-enabled .dream-task
+html.codex-dream-skin.dream-reading-enabled main.main-surface
+  [data-content-search-unit-key$=":assistant"]
   :where([class*="_markdownContent_"], .markdown, .prose)::before {
   content: "";
   position: absolute;
@@ -451,27 +468,31 @@ html.codex-dream-skin.dream-reading-enabled .dream-task
   box-shadow: 0 8px 28px color-mix(in oklab, var(--dream-canvas) 12%, transparent);
 }
 
-html.codex-dream-skin.dream-reading-enabled .dream-task
+html.codex-dream-skin.dream-reading-enabled main.main-surface
+  [data-content-search-unit-key$=":assistant"]
   :where([data-markdown-copy="code-block"], [class*="_codeBlockPlaceholder_"]) {
   color: var(--dream-text) !important;
   border-color: var(--dream-line) !important;
   background: var(--dream-reading-surface-strong) !important;
 }
 
-html.codex-dream-skin.dream-reading-enabled .dream-task
+html.codex-dream-skin.dream-reading-enabled main.main-surface
+  [data-content-search-unit-key$=":assistant"]
   :where([data-markdown-copy="inline-code"], [class*="_inlineMarkdown_"]) {
   color: var(--dream-text) !important;
   border: 1px solid var(--dream-line-soft);
   background: var(--dream-reading-surface-strong) !important;
 }
 
-html.codex-dream-skin.dream-reading-enabled .dream-task
+html.codex-dream-skin.dream-reading-enabled main.main-surface
+  [data-content-search-unit-key$=":assistant"]
   :where(blockquote, [class*="_blockquote_"]) {
   border-color: var(--dream-accent) !important;
   background: color-mix(in oklab, var(--dream-reading-surface) 88%, var(--dream-accent) 12%) !important;
 }
 
-html.codex-dream-skin.dream-reading-enabled .dream-task
+html.codex-dream-skin.dream-reading-enabled main.main-surface
+  [data-content-search-unit-key$=":assistant"]
   :where([data-markdown-table], table) {
   border-color: var(--dream-line) !important;
   background: var(--dream-reading-surface-strong) !important;

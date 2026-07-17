@@ -825,9 +825,9 @@
       style.id = STYLE_ID;
       (document.head || root).appendChild(style);
     }
-    if (style.dataset.dreamVersion !== "5") {
+    if (style.dataset.dreamVersion !== "6") {
       style.textContent = cssText;
-      style.dataset.dreamVersion = "5";
+      style.dataset.dreamVersion = "6";
     }
 
     const home = document.querySelector('[role="main"]:has([data-testid="home-icon"])');
@@ -929,7 +929,7 @@
     config,
     userSettings,
     installToken,
-    version: "1.3.2",
+    version: "1.3.3",
   };
   ensure();
   refreshProfileForArt(activeArtUrl);
@@ -941,5 +941,5 @@
     wallpaperState.error = true;
     updateWallpaperStatus();
   });
-  return { installed: true, version: "1.3.2", adaptive: true, controls: true };
+  return { installed: true, version: "1.3.3", adaptive: true, controls: true };
 })(__DREAM_CSS_JSON__, __DREAM_ART_JSON__, __DREAM_THEME_JSON__)
