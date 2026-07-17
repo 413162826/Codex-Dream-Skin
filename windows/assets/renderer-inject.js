@@ -2,6 +2,27 @@
   const STATE_KEY = "__CODEX_DREAM_SKIN_STATE__";
   const STYLE_ID = "codex-dream-skin-style";
   const CHROME_ID = "codex-dream-skin-chrome";
+  const CONTROLS_ID = "codex-dream-skin-controls";
+  const SETTINGS_KEY = "codex-dream-skin-user-settings-v1";
+  const WALLPAPER_DB_NAME = "codex-dream-skin-local-assets";
+  const WALLPAPER_STORE_NAME = "wallpapers";
+  const MAX_LOCAL_WALLPAPER_BYTES = 16 * 1024 * 1024;
+  const MAX_LOCAL_WALLPAPER_DIMENSION = 16384;
+  const MAX_LOCAL_WALLPAPER_PIXELS = 50_000_000;
+  const LOCAL_WALLPAPER_TYPES = new Set([
+    "image/png",
+    "image/jpeg",
+    "image/webp",
+    "image/gif",
+    "image/avif",
+  ]);
+  const DEFAULT_SETTINGS = {
+    transparency: 70,
+    brightness: 100,
+    sharpness: 100,
+    motion: true,
+    readingMode: true,
+  };
   const ROOT_CLASSES = [
     "codex-dream-skin",
     "dream-theme-light",
@@ -18,6 +39,10 @@
     "dream-task-ambient",
     "dream-task-banner",
     "dream-task-off",
+    "dream-motion-enabled",
+    "dream-motion-disabled",
+    "dream-reading-enabled",
+    "dream-reading-disabled",
   ];
   const ROOT_PROPERTIES = [
     "--dream-art",
@@ -27,6 +52,16 @@
     "--dream-accent",
     "--dream-accent-ink",
     "--dream-image-luma",
+    "--dream-user-main-alpha",
+    "--dream-user-main-mid-alpha",
+    "--dream-user-main-far-alpha",
+    "--dream-user-sidebar-alpha",
+    "--dream-user-control-alpha",
+    "--dream-user-task-edge-alpha",
+    "--dream-user-task-mid-alpha",
+    "--dream-user-task-far-alpha",
+    "--dream-wallpaper-brightness",
+    "--dream-wallpaper-blur",
   ];
   const HOME_UTILITY_CLASS = "dream-home-utility";
   const installToken = {};
@@ -74,7 +109,13 @@
       ? art.taskMode
       : "auto";
     const metadataRatio = Number(config?.artMetadata?.ratio);
+    const rawThemeId = typeof config.id === "string" ? config.id.trim() : "";
+    const themeId = /^[\w.-]{1,120}$/u.test(rawThemeId) ? rawThemeId : "active";
     return {
+      themeId,
+      themeName: typeof config.name === "string" && config.name.trim()
+        ? config.name.trim().slice(0, 120)
+        : "主题壁纸",
       appearance,
       safeArea,
       taskMode,
@@ -89,8 +130,13 @@
   if (previous?.observer) previous.observer.disconnect();
   if (previous?.timer) clearInterval(previous.timer);
   if (previous?.scheduler?.timeout) clearTimeout(previous.scheduler.timeout);
-  if (previous?.artUrl) URL.revokeObjectURL(previous.artUrl);
-  const artUrl = (() => {
+  for (const url of new Set([
+    previous?.artUrl,
+    previous?.injectedArtUrl,
+    previous?.localArtUrl,
+  ].filter(Boolean))) URL.revokeObjectURL(url);
+  document.getElementById(CONTROLS_ID)?.remove();
+  const injectedArtUrl = (() => {
     const comma = artDataUrl.indexOf(",");
     const binary = atob(artDataUrl.slice(comma + 1));
     const bytes = new Uint8Array(binary.length);
@@ -98,7 +144,55 @@
     const mime = /^data:([^;,]+)/.exec(artDataUrl)?.[1] || "image/png";
     return URL.createObjectURL(new Blob([bytes], { type: mime }));
   })();
+  let localArtUrl = null;
+  let activeArtUrl = injectedArtUrl;
   const config = normalizeConfig(rawConfig);
+  const readUserSettings = () => {
+    let stored = {};
+    try { stored = JSON.parse(window.localStorage?.getItem(SETTINGS_KEY) || "{}"); } catch {}
+    const numberWithin = (value, fallback, min, max) => {
+      const numeric = Number(value);
+      return Number.isFinite(numeric) ? Math.round(clamp(numeric, min, max)) : fallback;
+    };
+    return {
+      transparency: numberWithin(stored.transparency, DEFAULT_SETTINGS.transparency, 22, 88),
+      brightness: numberWithin(stored.brightness, DEFAULT_SETTINGS.brightness, 55, 115),
+      sharpness: numberWithin(stored.sharpness, DEFAULT_SETTINGS.sharpness, 20, 100),
+      motion: typeof stored.motion === "boolean" ? stored.motion : DEFAULT_SETTINGS.motion,
+      readingMode: typeof stored.readingMode === "boolean"
+        ? stored.readingMode
+        : DEFAULT_SETTINGS.readingMode,
+    };
+  };
+  const userSettings = readUserSettings();
+  const persistUserSettings = () => {
+    try { window.localStorage?.setItem(SETTINGS_KEY, JSON.stringify(userSettings)); } catch {}
+  };
+  const applyUserSettings = (root) => {
+    const mainAlpha = clamp(1 - userSettings.transparency / 100, .12, .78);
+    const percent = (value) => `${Math.round(clamp(value) * 100)}%`;
+    root.style.setProperty("--dream-user-main-alpha", percent(mainAlpha));
+    root.style.setProperty("--dream-user-main-mid-alpha", percent(mainAlpha * .68));
+    root.style.setProperty("--dream-user-main-far-alpha", percent(mainAlpha * .36));
+    root.style.setProperty("--dream-user-sidebar-alpha", percent(Math.min(.9, mainAlpha + .16)));
+    root.style.setProperty("--dream-user-control-alpha", percent(Math.min(.96, mainAlpha + .5)));
+    root.style.setProperty("--dream-user-task-edge-alpha", percent(Math.min(.92, mainAlpha + .56)));
+    root.style.setProperty("--dream-user-task-mid-alpha", percent(Math.min(.88, mainAlpha + .48)));
+    root.style.setProperty("--dream-user-task-far-alpha", percent(Math.min(.82, mainAlpha + .36)));
+    root.style.setProperty(
+      "--dream-wallpaper-brightness",
+      (userSettings.brightness / 100).toFixed(2),
+    );
+    root.style.setProperty(
+      "--dream-wallpaper-blur",
+      `${clamp((100 - userSettings.sharpness) / 20, 0, 4).toFixed(2)}px`,
+    );
+    root.classList.toggle("dream-motion-enabled", userSettings.motion);
+    root.classList.toggle("dream-motion-disabled", !userSettings.motion);
+    root.classList.toggle("dream-reading-enabled", userSettings.readingMode);
+    root.classList.toggle("dream-reading-disabled", !userSettings.readingMode);
+    persistUserSettings();
+  };
   let profile = {
     ...defaultProfile,
     aspect: config.initialAspect ?? defaultProfile.aspect,
@@ -106,10 +200,10 @@
   const existingStyle = document.getElementById(STYLE_ID);
   if (existingStyle) {
     existingStyle.textContent = cssText;
-    existingStyle.dataset.dreamVersion = "3";
+    existingStyle.dataset.dreamVersion = "4";
   }
 
-  const analyzeArt = () => new Promise((resolve) => {
+  const analyzeArt = (url = activeArtUrl) => new Promise((resolve) => {
     if (typeof Image !== "function") {
       resolve(defaultProfile);
       return;
@@ -227,8 +321,294 @@
       }
     };
     image.onerror = () => resolve(defaultProfile);
-    image.src = artUrl;
+    image.src = url;
   });
+
+  const wallpaperState = { name: config.themeName, error: false };
+  const wallpaperStoreKey = `theme:${config.themeId}`;
+  let artGeneration = 0;
+  const isCurrentInstall = () =>
+    window[STATE_KEY]?.installToken === installToken && !window.__CODEX_DREAM_SKIN_DISABLED__;
+  const updateWallpaperStatus = () => {
+    if (!isCurrentInstall()) return;
+    const output = document.querySelector?.("[data-dream-wallpaper-status]");
+    if (!output) return;
+    output.value = wallpaperState.name;
+    output.textContent = wallpaperState.name;
+    output.title = wallpaperState.name;
+    output.classList?.toggle?.("is-error", wallpaperState.error);
+  };
+  const openWallpaperDatabase = () => new Promise((resolve, reject) => {
+    if (!window.indexedDB) {
+      reject(new Error("当前环境不支持本地壁纸存储"));
+      return;
+    }
+    const request = window.indexedDB.open(WALLPAPER_DB_NAME, 1);
+    request.onupgradeneeded = () => {
+      const database = request.result;
+      if (!database.objectStoreNames.contains(WALLPAPER_STORE_NAME)) {
+        database.createObjectStore(WALLPAPER_STORE_NAME);
+      }
+    };
+    request.onsuccess = () => resolve(request.result);
+    request.onerror = () => reject(request.error || new Error("本地壁纸存储打开失败"));
+  });
+  const readSavedWallpaper = async () => {
+    if (!window.indexedDB) return null;
+    const database = await openWallpaperDatabase();
+    try {
+      return await new Promise((resolve, reject) => {
+        const request = database.transaction(WALLPAPER_STORE_NAME, "readonly")
+          .objectStore(WALLPAPER_STORE_NAME).get(wallpaperStoreKey);
+        request.onsuccess = () => resolve(request.result ?? null);
+        request.onerror = () => reject(request.error);
+      });
+    } finally {
+      database.close();
+    }
+  };
+  const writeSavedWallpaper = async (record) => {
+    const database = await openWallpaperDatabase();
+    try {
+      await new Promise((resolve, reject) => {
+        const transaction = database.transaction(WALLPAPER_STORE_NAME, "readwrite");
+        transaction.objectStore(WALLPAPER_STORE_NAME).put(record, wallpaperStoreKey);
+        transaction.oncomplete = resolve;
+        transaction.onerror = () => reject(transaction.error);
+        transaction.onabort = () => reject(transaction.error);
+      });
+    } finally {
+      database.close();
+    }
+  };
+  const removeSavedWallpaper = async () => {
+    if (!window.indexedDB) return;
+    const database = await openWallpaperDatabase();
+    try {
+      await new Promise((resolve, reject) => {
+        const transaction = database.transaction(WALLPAPER_STORE_NAME, "readwrite");
+        transaction.objectStore(WALLPAPER_STORE_NAME).delete(wallpaperStoreKey);
+        transaction.oncomplete = resolve;
+        transaction.onerror = () => reject(transaction.error);
+        transaction.onabort = () => reject(transaction.error);
+      });
+    } finally {
+      database.close();
+    }
+  };
+  const refreshProfileForArt = (url) => {
+    activeArtUrl = url;
+    const generation = ++artGeneration;
+    profile = {
+      ...defaultProfile,
+      aspect: config.initialAspect ?? defaultProfile.aspect,
+    };
+    const root = document.documentElement;
+    const state = window[STATE_KEY];
+    if (state?.installToken === installToken) state.activeArtUrl = url;
+    if (root?.classList?.contains?.("codex-dream-skin")) applyProfile(root);
+    analyzeArt(url).then((result) => {
+      const state = window[STATE_KEY];
+      if (generation !== artGeneration || state?.installToken !== installToken ||
+        window.__CODEX_DREAM_SKIN_DISABLED__) return;
+      profile = result;
+      state.profile = result;
+      state.activeArtUrl = activeArtUrl;
+      ensure();
+    });
+  };
+  const applyLocalWallpaper = (record) => {
+    if (!isCurrentInstall()) return false;
+    if (localArtUrl) URL.revokeObjectURL(localArtUrl);
+    localArtUrl = null;
+    if (record?.blob instanceof Blob) {
+      localArtUrl = URL.createObjectURL(record.blob);
+      wallpaperState.name = record.name || "应用内壁纸";
+      wallpaperState.error = false;
+      refreshProfileForArt(localArtUrl);
+    } else {
+      wallpaperState.name = config.themeName;
+      wallpaperState.error = false;
+      refreshProfileForArt(injectedArtUrl);
+    }
+    const state = window[STATE_KEY];
+    if (state) state.localArtUrl = localArtUrl;
+    updateWallpaperStatus();
+    return true;
+  };
+  const validateLocalWallpaper = async (file) => {
+    if (!file || !LOCAL_WALLPAPER_TYPES.has(file.type)) {
+      throw new Error("请选择 PNG、JPEG、WebP、GIF 或 AVIF 图片");
+    }
+    if (file.size < 1 || file.size > MAX_LOCAL_WALLPAPER_BYTES) {
+      throw new Error("壁纸大小必须在 16 MB 以内");
+    }
+    const previewUrl = URL.createObjectURL(file);
+    try {
+      await new Promise((resolve, reject) => {
+        const image = new Image();
+        image.onload = () => {
+          const width = image.naturalWidth;
+          const height = image.naturalHeight;
+          if (width < 1 || height < 1 ||
+            width > MAX_LOCAL_WALLPAPER_DIMENSION ||
+            height > MAX_LOCAL_WALLPAPER_DIMENSION ||
+            width * height > MAX_LOCAL_WALLPAPER_PIXELS) {
+            reject(new Error("图片尺寸不能超过 16384px 或 5000 万像素"));
+            return;
+          }
+          resolve();
+        };
+        image.onerror = () => reject(new Error("图片无法读取"));
+        image.src = previewUrl;
+      });
+    } finally {
+      URL.revokeObjectURL(previewUrl);
+    }
+  };
+  const createControls = () => {
+    const existing = document.getElementById(CONTROLS_ID);
+    if (existing) return existing;
+    const controls = document.createElement("div");
+    controls.id = CONTROLS_ID;
+    controls.innerHTML = `
+      <section class="dream-controls__panel" hidden aria-label="Dream Skin 外观设置">
+        <header class="dream-controls__header">
+          <strong>Dream Skin</strong>
+          <span>实时调节</span>
+        </header>
+        <label class="dream-control-row">
+          <span>界面透明度</span>
+          <input data-dream-setting="transparency" type="range" min="22" max="88" step="1">
+          <output data-dream-output="transparency"></output>
+        </label>
+        <label class="dream-control-row">
+          <span>背景亮度</span>
+          <input data-dream-setting="brightness" type="range" min="55" max="115" step="1">
+          <output data-dream-output="brightness"></output>
+        </label>
+        <label class="dream-control-row">
+          <span>背景清晰度</span>
+          <input data-dream-setting="sharpness" type="range" min="20" max="100" step="1">
+          <output data-dream-output="sharpness"></output>
+        </label>
+        <label class="dream-switch-row">
+          <span>动态氛围</span>
+          <input data-dream-setting="motion" type="checkbox">
+          <span class="dream-switch" aria-hidden="true"></span>
+          <output data-dream-output="motion"></output>
+        </label>
+        <label class="dream-switch-row">
+          <span>正文增强</span>
+          <input data-dream-setting="readingMode" type="checkbox">
+          <span class="dream-switch" aria-hidden="true"></span>
+          <output data-dream-output="readingMode"></output>
+        </label>
+        <div class="dream-wallpaper-row">
+          <input data-dream-wallpaper-input type="file"
+            accept="image/png,image/jpeg,image/webp,image/gif,image/avif">
+          <button data-dream-wallpaper-select type="button">更换壁纸</button>
+          <output data-dream-wallpaper-status aria-live="polite"></output>
+        </div>
+        <button class="dream-controls__reset" type="button">恢复当前主题</button>
+      </section>
+      <button class="dream-controls__toggle" type="button" title="调节 Dream Skin"
+        aria-label="调节 Dream Skin" aria-expanded="false">
+        <span aria-hidden="true">◐</span><span>外观</span>
+      </button>
+    `;
+    if (typeof controls.querySelector !== "function") {
+      controls.remove();
+      return null;
+    }
+    const panel = controls.querySelector(".dream-controls__panel");
+    const toggle = controls.querySelector(".dream-controls__toggle");
+    const wallpaperInput = controls.querySelector("[data-dream-wallpaper-input]");
+    const wallpaperSelect = controls.querySelector("[data-dream-wallpaper-select]");
+    const syncControls = () => {
+      for (const key of ["transparency", "brightness", "sharpness"]) {
+        const input = controls.querySelector(`[data-dream-setting="${key}"]`);
+        const output = controls.querySelector(`[data-dream-output="${key}"]`);
+        input.value = String(userSettings[key]);
+        output.value = `${userSettings[key]}%`;
+      }
+      for (const key of ["motion", "readingMode"]) {
+        const input = controls.querySelector(`[data-dream-setting="${key}"]`);
+        const output = controls.querySelector(`[data-dream-output="${key}"]`);
+        input.checked = userSettings[key];
+        output.value = userSettings[key] ? "开启" : "关闭";
+      }
+    };
+    toggle.addEventListener("click", () => {
+      panel.hidden = !panel.hidden;
+      toggle.setAttribute("aria-expanded", String(!panel.hidden));
+    });
+    controls.addEventListener("keydown", (event) => {
+      if (event.key !== "Escape" || panel.hidden) return;
+      panel.hidden = true;
+      toggle.setAttribute("aria-expanded", "false");
+      toggle.focus();
+    });
+    for (const key of ["transparency", "brightness", "sharpness"]) {
+      controls.querySelector(`[data-dream-setting="${key}"]`).addEventListener("input", (event) => {
+        userSettings[key] = Number(event.currentTarget.value);
+        syncControls();
+        applyUserSettings(document.documentElement);
+      });
+    }
+    for (const key of ["motion", "readingMode"]) {
+      controls.querySelector(`[data-dream-setting="${key}"]`).addEventListener("change", (event) => {
+        userSettings[key] = Boolean(event.currentTarget.checked);
+        syncControls();
+        applyUserSettings(document.documentElement);
+      });
+    }
+    wallpaperSelect.addEventListener("click", () => wallpaperInput.click());
+    wallpaperInput.addEventListener("change", async () => {
+      const file = wallpaperInput.files?.[0];
+      wallpaperInput.value = "";
+      if (!file) return;
+      wallpaperSelect.disabled = true;
+      wallpaperState.name = "正在保存…";
+      wallpaperState.error = false;
+      updateWallpaperStatus();
+      try {
+        await validateLocalWallpaper(file);
+        if (!isCurrentInstall()) return;
+        const record = {
+          blob: file.slice(0, file.size, file.type),
+          name: file.name,
+          type: file.type,
+          size: file.size,
+          updatedAt: Date.now(),
+        };
+        await writeSavedWallpaper(record);
+        if (!isCurrentInstall()) return;
+        applyLocalWallpaper(record);
+      } catch (error) {
+        wallpaperState.name = error?.message || "壁纸更换失败";
+        wallpaperState.error = true;
+        updateWallpaperStatus();
+      } finally {
+        wallpaperSelect.disabled = false;
+      }
+    });
+    controls.querySelector(".dream-controls__reset").addEventListener("click", async () => {
+      try {
+        await removeSavedWallpaper();
+        if (!isCurrentInstall()) return;
+        applyLocalWallpaper(null);
+      } catch (error) {
+        wallpaperState.name = error?.message || "恢复主题壁纸失败";
+        wallpaperState.error = true;
+        updateWallpaperStatus();
+      }
+    });
+    syncControls();
+    document.body.appendChild(controls);
+    updateWallpaperStatus();
+    return controls;
+  };
 
   const detectShellAppearance = () => {
     const root = document.documentElement;
@@ -285,6 +665,7 @@
     document.querySelectorAll(`.${HOME_UTILITY_CLASS}`).forEach((node) => node.classList.remove(HOME_UTILITY_CLASS));
     document.getElementById(STYLE_ID)?.remove();
     document.getElementById(CHROME_ID)?.remove();
+    document.getElementById(CONTROLS_ID)?.remove();
   };
 
   const applyProfile = (root) => {
@@ -312,13 +693,14 @@
     for (const value of ["ambient", "banner", "off"]) {
       root.classList.toggle(`dream-task-${value}`, taskMode === value);
     }
-    root.style.setProperty("--dream-art", `url("${artUrl}")`);
+    root.style.setProperty("--dream-art", `url("${activeArtUrl}")`);
     root.style.setProperty("--dream-art-position", `${Math.round(focusX * 100)}% ${Math.round(focusY * 100)}%`);
     root.style.setProperty("--dream-focus-x", String(focusX));
     root.style.setProperty("--dream-focus-y", String(focusY));
     root.style.setProperty("--dream-accent", accent);
     root.style.setProperty("--dream-accent-ink", accentInk);
     root.style.setProperty("--dream-image-luma", profile.luma.toFixed(3));
+    applyUserSettings(root);
   };
 
   const ensure = () => {
@@ -342,9 +724,9 @@
       style.id = STYLE_ID;
       (document.head || root).appendChild(style);
     }
-    if (style.dataset.dreamVersion !== "3") {
+    if (style.dataset.dreamVersion !== "4") {
       style.textContent = cssText;
-      style.dataset.dreamVersion = "3";
+      style.dataset.dreamVersion = "4";
     }
 
     const home = document.querySelector('[role="main"]:has([data-testid="home-icon"])');
@@ -367,7 +749,17 @@
       chrome.setAttribute("aria-hidden", "true");
       document.body.appendChild(chrome);
     }
+    if (chrome.dataset.dreamMotionVersion !== "1") {
+      chrome.innerHTML = `
+        <span class="dream-ambient dream-ambient--dust-near"></span>
+        <span class="dream-ambient dream-ambient--dust-far"></span>
+        <span class="dream-ambient dream-ambient--glow-primary"></span>
+        <span class="dream-ambient dream-ambient--glow-soft"></span>
+      `;
+      chrome.dataset.dreamMotionVersion = "1";
+    }
     chrome.classList.toggle("dream-home-shell", Boolean(home));
+    createControls();
   };
 
   const cleanup = () => {
@@ -378,7 +770,11 @@
     state?.observer?.disconnect();
     if (state?.timer) clearInterval(state.timer);
     if (state?.scheduler?.timeout) clearTimeout(state.scheduler.timeout);
-    if (state?.artUrl) URL.revokeObjectURL(state.artUrl);
+    for (const url of new Set([
+      state?.artUrl,
+      state?.injectedArtUrl,
+      state?.localArtUrl,
+    ].filter(Boolean))) URL.revokeObjectURL(url);
     delete window[STATE_KEY];
     return true;
   };
@@ -403,15 +799,30 @@
   });
   const timer = setInterval(ensure, 5000);
   window[STATE_KEY] = {
-    ensure, cleanup, observer, timer, scheduler, artUrl, profile, config, installToken, version: "1.2.0",
+    ensure,
+    cleanup,
+    observer,
+    timer,
+    scheduler,
+    artUrl: injectedArtUrl,
+    injectedArtUrl,
+    localArtUrl,
+    activeArtUrl,
+    profile,
+    config,
+    userSettings,
+    installToken,
+    version: "1.3.0",
   };
   ensure();
-  analyzeArt().then((result) => {
-    const state = window[STATE_KEY];
-    if (state?.installToken !== installToken || window.__CODEX_DREAM_SKIN_DISABLED__) return;
-    profile = result;
-    state.profile = result;
-    ensure();
+  refreshProfileForArt(activeArtUrl);
+  void readSavedWallpaper().then((record) => {
+    if (!isCurrentInstall()) return;
+    if (record) applyLocalWallpaper(record);
+  }).catch((error) => {
+    wallpaperState.name = error?.message || "本地壁纸读取失败";
+    wallpaperState.error = true;
+    updateWallpaperStatus();
   });
-  return { installed: true, version: "1.2.0", adaptive: true };
+  return { installed: true, version: "1.3.0", adaptive: true, controls: true };
 })(__DREAM_CSS_JSON__, __DREAM_ART_JSON__, __DREAM_THEME_JSON__)

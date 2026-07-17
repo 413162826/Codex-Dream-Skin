@@ -56,4 +56,41 @@ const malformedJpeg = Buffer.from(featured.subarray(0, 64));
 malformedJpeg[0] = 0;
 assert.equal(readImageMetadata(malformedJpeg, ".jpg"), null);
 
+const gifHeader = Buffer.alloc(10);
+gifHeader.write("GIF89a", 0, "ascii");
+gifHeader.writeUInt16LE(640, 6);
+gifHeader.writeUInt16LE(360, 8);
+assert.deepEqual(readImageMetadata(gifHeader, ".gif"), {
+  width: 640,
+  height: 360,
+  ratio: 640 / 360,
+  wide: true,
+  aspect: "wide",
+  taskMode: "ambient",
+});
+
+const avifHeader = Buffer.alloc(44);
+avifHeader.writeUInt32BE(24, 0);
+avifHeader.write("ftyp", 4, "ascii");
+avifHeader.write("avif", 8, "ascii");
+avifHeader.write("avif", 16, "ascii");
+avifHeader.write("mif1", 20, "ascii");
+avifHeader.writeUInt32BE(20, 24);
+avifHeader.write("ispe", 28, "ascii");
+avifHeader.writeUInt32BE(1920, 36);
+avifHeader.writeUInt32BE(1080, 40);
+assert.deepEqual(readImageMetadata(avifHeader, ".avif"), {
+  width: 1920,
+  height: 1080,
+  ratio: 1920 / 1080,
+  wide: true,
+  aspect: "wide",
+  taskMode: "ambient",
+});
+
+const fakeAvif = Buffer.from(avifHeader);
+fakeAvif.write("mp42", 8, "ascii");
+fakeAvif.write("mp42", 16, "ascii");
+assert.equal(readImageMetadata(fakeAvif, ".avif"), null);
+
 console.log("PASS: Windows injector reads strict image dimensions before building the payload.");

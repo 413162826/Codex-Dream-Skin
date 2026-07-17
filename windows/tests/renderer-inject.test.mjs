@@ -29,11 +29,16 @@ function createFixture({
   computedColorScheme = "",
   osAppearance = "light",
   analysisFixture = null,
+  storedSettings = null,
 }) {
   const nodes = new Map();
   const rootClasses = new Set(staleSkin ? ["codex-dream-skin"] : []);
   const rootStyles = new Map(staleSkin ? [["--dream-art", "url(\"blob:stale\")"]] : []);
   const revokedUrls = [];
+  const storage = new Map();
+  if (storedSettings) {
+    storage.set("codex-dream-skin-user-settings-v1", JSON.stringify(storedSettings));
+  }
   const observers = [];
   let objectUrlCount = 0;
   let hasShell = shellPresent;
@@ -171,6 +176,10 @@ function createFixture({
   const context = {
     window: {
       matchMedia() { return { matches: osAppearance === "dark" }; },
+      localStorage: {
+        getItem(key) { return storage.get(key) ?? null; },
+        setItem(key, value) { storage.set(key, String(value)); },
+      },
     },
     document,
     MutationObserver: class {
@@ -239,10 +248,17 @@ assert.equal(main.nodes.has("codex-dream-skin-chrome"), true);
 assert.equal(main.rootClasses.has("dream-theme-dark"), true);
 assert.equal(main.rootClasses.has("dream-art-standard"), true);
 assert.equal(main.rootClasses.has("dream-task-ambient"), true);
+assert.equal(main.rootClasses.has("dream-motion-enabled"), true);
+assert.equal(main.rootClasses.has("dream-reading-enabled"), true);
+assert.equal(main.rootStyles.get("--dream-user-main-alpha"), "30%");
+assert.equal(main.rootStyles.get("--dream-wallpaper-brightness"), "1.00");
+assert.equal(main.rootStyles.get("--dream-wallpaper-blur"), "0.00px");
 assert.equal(main.routeClasses.has("dream-task"), true);
 assert.equal(main.context.window.__CODEX_DREAM_SKIN_STATE__.cleanup(), true);
 assert.equal(main.rootClasses.has("codex-dream-skin"), false);
 assert.equal(main.rootClasses.has("dream-theme-dark"), false);
+assert.equal(main.rootClasses.has("dream-motion-enabled"), false);
+assert.equal(main.rootClasses.has("dream-reading-enabled"), false);
 assert.equal(main.nodes.has("codex-dream-skin-style"), false);
 assert.equal(main.nodes.has("codex-dream-skin-chrome"), false);
 assert.deepEqual(main.revokedUrls, ["blob:fixture-1"]);
@@ -285,6 +301,7 @@ const configuredPayload = buildPayload({
 });
 const configuredResult = vm.runInNewContext(configuredPayload, configured.context);
 assert.equal(configuredResult.adaptive, true);
+assert.equal(configuredResult.controls, true);
 assert.equal(configured.rootClasses.has("dream-theme-light"), true);
 assert.equal(configured.rootClasses.has("dream-theme-dark"), false);
 assert.equal(configured.rootClasses.has("dream-focus-left"), true);
@@ -367,5 +384,32 @@ const metadataWide = createFixture({ shellPresent: true });
 vm.runInNewContext(buildPayload({ artMetadata: { ratio: 16 / 9 } }), metadataWide.context);
 assert.equal(metadataWide.rootClasses.has("dream-art-wide"), true);
 assert.equal(metadataWide.rootClasses.has("dream-art-standard"), false);
+
+const userCustomized = createFixture({
+  shellPresent: true,
+  storedSettings: {
+    transparency: 88,
+    brightness: 55,
+    sharpness: 20,
+    motion: false,
+    readingMode: false,
+  },
+});
+const customizedResult = vm.runInNewContext(payload, userCustomized.context);
+assert.equal(customizedResult.version, "1.3.0");
+assert.equal(userCustomized.rootClasses.has("dream-motion-disabled"), true);
+assert.equal(userCustomized.rootClasses.has("dream-reading-disabled"), true);
+assert.equal(userCustomized.rootStyles.get("--dream-user-main-alpha"), "12%");
+assert.equal(userCustomized.rootStyles.get("--dream-user-sidebar-alpha"), "28%");
+assert.equal(userCustomized.rootStyles.get("--dream-wallpaper-brightness"), "0.55");
+assert.equal(userCustomized.rootStyles.get("--dream-wallpaper-blur"), "4.00px");
+
+assert.match(template, /data-dream-setting="transparency"/);
+assert.match(template, /image\/gif,image\/avif/);
+assert.match(template, /MAX_LOCAL_WALLPAPER_DIMENSION = 16384/);
+assert.match(template, /MAX_LOCAL_WALLPAPER_PIXELS = 50_000_000/);
+assert.match(css, /dream-reading-enabled/);
+assert.match(css, /@keyframes dream-wallpaper-drift/);
+assert.match(css, /#codex-dream-skin-controls/);
 
 console.log("PASS: renderer applies adaptive theme metadata and preserves transparent auxiliary windows.");

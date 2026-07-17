@@ -15,17 +15,29 @@
   --dream-accent-hover: color-mix(in oklab, var(--dream-accent) 20%, var(--dream-surface));
   --dream-hero-shade: color-mix(in oklab, var(--dream-surface) 93%, transparent);
   --dream-ambient-opacity: .18;
+  --dream-user-main-alpha: 30%;
+  --dream-user-main-mid-alpha: 20%;
+  --dream-user-main-far-alpha: 11%;
+  --dream-user-sidebar-alpha: 46%;
+  --dream-user-control-alpha: 80%;
+  --dream-user-task-edge-alpha: 86%;
+  --dream-user-task-mid-alpha: 78%;
+  --dream-user-task-far-alpha: 66%;
+  --dream-wallpaper-brightness: 1;
+  --dream-wallpaper-blur: 0px;
+  --dream-reading-surface: color-mix(in oklab, var(--dream-surface) 78%, transparent);
+  --dream-reading-surface-strong: color-mix(in oklab, var(--dream-surface-raised) 94%, transparent);
   --dream-shadow: 0 16px 42px color-mix(in oklab, var(--dream-accent) 9%, transparent);
-  --dream-immersive-edge: color-mix(in oklab, var(--dream-surface) 46%, transparent);
-  --dream-immersive-mid: color-mix(in oklab, var(--dream-surface) 28%, transparent);
-  --dream-immersive-far: color-mix(in oklab, var(--dream-surface) 14%, transparent);
-  --dream-immersive-sidebar: color-mix(in oklab, var(--dream-sidebar) 50%, transparent);
-  --dream-task-immersive-sidebar: color-mix(in oklab, var(--dream-sidebar) 72%, transparent);
-  --dream-immersive-composer: color-mix(in oklab, var(--dream-surface-raised) 76%, var(--dream-accent) 4%);
+  --dream-immersive-edge: color-mix(in oklab, var(--dream-surface) var(--dream-user-main-alpha), transparent);
+  --dream-immersive-mid: color-mix(in oklab, var(--dream-surface) var(--dream-user-main-mid-alpha), transparent);
+  --dream-immersive-far: color-mix(in oklab, var(--dream-surface) var(--dream-user-main-far-alpha), transparent);
+  --dream-immersive-sidebar: color-mix(in oklab, var(--dream-sidebar) var(--dream-user-sidebar-alpha), transparent);
+  --dream-task-immersive-sidebar: color-mix(in oklab, var(--dream-sidebar) var(--dream-user-task-mid-alpha), transparent);
+  --dream-immersive-composer: color-mix(in oklab, var(--dream-surface-raised) var(--dream-user-control-alpha), var(--dream-accent) 4%);
   --dream-immersive-line: color-mix(in oklab, var(--dream-line) 76%, transparent);
-  --dream-task-immersive-edge: color-mix(in oklab, var(--dream-surface) 86%, transparent);
-  --dream-task-immersive-mid: color-mix(in oklab, var(--dream-surface) 78%, transparent);
-  --dream-task-immersive-far: color-mix(in oklab, var(--dream-surface) 66%, transparent);
+  --dream-task-immersive-edge: color-mix(in oklab, var(--dream-surface) var(--dream-user-task-edge-alpha), transparent);
+  --dream-task-immersive-mid: color-mix(in oklab, var(--dream-surface) var(--dream-user-task-mid-alpha), transparent);
+  --dream-task-immersive-far: color-mix(in oklab, var(--dream-surface) var(--dream-user-task-far-alpha), transparent);
 }
 
 :root.codex-dream-skin.dream-theme-dark {
@@ -42,20 +54,24 @@
   --dream-accent-hover: color-mix(in oklab, var(--dream-accent) 27%, var(--dream-surface));
   --dream-hero-shade: color-mix(in oklab, var(--dream-surface) 91%, transparent);
   --dream-ambient-opacity: .22;
+  --dream-reading-surface: color-mix(in oklab, var(--dream-surface) 74%, transparent);
+  --dream-reading-surface-strong: color-mix(in oklab, var(--dream-surface-raised) 92%, transparent);
   --dream-shadow: 0 18px 48px color-mix(in oklab, oklch(0.06 0.01 245) 72%, transparent);
-  --dream-immersive-edge: color-mix(in oklab, var(--dream-surface) 43%, transparent);
-  --dream-immersive-mid: color-mix(in oklab, var(--dream-surface) 27%, transparent);
-  --dream-immersive-far: color-mix(in oklab, var(--dream-surface) 16%, transparent);
-  --dream-immersive-sidebar: color-mix(in oklab, var(--dream-sidebar) 48%, transparent);
-  --dream-task-immersive-sidebar: color-mix(in oklab, var(--dream-sidebar) 70%, transparent);
-  --dream-immersive-composer: color-mix(in oklab, var(--dream-surface-raised) 88%, var(--dream-accent) 5%);
+  --dream-immersive-edge: color-mix(in oklab, var(--dream-surface) var(--dream-user-main-alpha), transparent);
+  --dream-immersive-mid: color-mix(in oklab, var(--dream-surface) var(--dream-user-main-mid-alpha), transparent);
+  --dream-immersive-far: color-mix(in oklab, var(--dream-surface) var(--dream-user-main-far-alpha), transparent);
+  --dream-immersive-sidebar: color-mix(in oklab, var(--dream-sidebar) var(--dream-user-sidebar-alpha), transparent);
+  --dream-task-immersive-sidebar: color-mix(in oklab, var(--dream-sidebar) var(--dream-user-task-mid-alpha), transparent);
+  --dream-immersive-composer: color-mix(in oklab, var(--dream-surface-raised) var(--dream-user-control-alpha), var(--dream-accent) 5%);
   --dream-immersive-line: color-mix(in oklab, var(--dream-line) 82%, transparent);
-  --dream-task-immersive-edge: color-mix(in oklab, var(--dream-surface) 82%, transparent);
-  --dream-task-immersive-mid: color-mix(in oklab, var(--dream-surface) 74%, transparent);
-  --dream-task-immersive-far: color-mix(in oklab, var(--dream-surface) 60%, transparent);
+  --dream-task-immersive-edge: color-mix(in oklab, var(--dream-surface) var(--dream-user-task-edge-alpha), transparent);
+  --dream-task-immersive-mid: color-mix(in oklab, var(--dream-surface) var(--dream-user-task-mid-alpha), transparent);
+  --dream-task-immersive-far: color-mix(in oklab, var(--dream-surface) var(--dream-user-task-far-alpha), transparent);
 }
 
 html.codex-dream-skin body {
+  position: relative;
+  isolation: isolate;
   background: var(--dream-canvas) !important;
   color: var(--dream-text) !important;
   font-family: "Segoe UI Variable Text", "Segoe UI", "Microsoft YaHei UI", system-ui, sans-serif !important;
@@ -63,7 +79,8 @@ html.codex-dream-skin body {
 
 html.codex-dream-skin aside.app-shell-left-panel {
   color: var(--dream-text) !important;
-  background: var(--dream-sidebar) !important;
+  background: color-mix(in oklab,
+    var(--dream-sidebar) var(--dream-user-sidebar-alpha), transparent) !important;
   border-color: var(--dream-line-soft) !important;
   box-shadow: inset -1px 0 var(--dream-line-soft) !important;
   backdrop-filter: none !important;
@@ -99,7 +116,8 @@ html.codex-dream-skin main.main-surface {
   isolation: isolate;
   overflow: hidden !important;
   color: var(--dream-text) !important;
-  background: var(--dream-surface) !important;
+  background: color-mix(in oklab,
+    var(--dream-surface) var(--dream-user-main-alpha), transparent) !important;
   border-color: var(--dream-line-soft) !important;
   box-shadow: inset 0 1px color-mix(in oklab, var(--dream-surface-raised) 72%, transparent) !important;
 }
@@ -107,7 +125,8 @@ html.codex-dream-skin main.main-surface {
 html.codex-dream-skin main.main-surface > header.app-header-tint {
   /* Preserve Codex's native fixed header geometry and side-panel controls. */
   color: var(--dream-text) !important;
-  background: color-mix(in oklab, var(--dream-surface) 94%, transparent) !important;
+  background: color-mix(in oklab,
+    var(--dream-surface) var(--dream-user-control-alpha), transparent) !important;
   border-color: var(--dream-line-soft) !important;
   backdrop-filter: blur(12px) saturate(1.05) !important;
 }
@@ -129,7 +148,11 @@ html.codex-dream-skin.dream-theme-dark [class~="group/application-menu-top-bar"]
 }
 
 #codex-dream-skin-chrome {
-  display: none !important;
+  position: fixed;
+  z-index: 0;
+  inset: 0;
+  display: block;
+  overflow: hidden;
   pointer-events: none !important;
 }
 
@@ -143,7 +166,8 @@ html.codex-dream-skin .dream-task {
   position: relative;
   isolation: isolate;
   min-height: 100%;
-  background: var(--dream-surface) !important;
+  background: color-mix(in oklab,
+    var(--dream-surface) var(--dream-user-task-far-alpha), transparent) !important;
 }
 
 html.codex-dream-skin .dream-task::before {
@@ -157,6 +181,7 @@ html.codex-dream-skin .dream-task::before {
   background-repeat: no-repeat;
   background-position: var(--dream-art-position);
   background-size: cover;
+  filter: brightness(var(--dream-wallpaper-brightness)) blur(var(--dream-wallpaper-blur));
   mask-image: linear-gradient(to bottom, oklch(0 0 0) 0, oklch(0 0 0 / .92) 38%, transparent 88%);
 }
 
@@ -197,7 +222,8 @@ html.codex-dream-skin .dream-task [data-message-author-role] {
 html.codex-dream-skin .dream-home {
   --thread-content-max-width: min(1180px, calc(100cqw - 56px)) !important;
   overflow-x: hidden !important;
-  background: var(--dream-surface) !important;
+  background: color-mix(in oklab,
+    var(--dream-surface) var(--dream-user-main-alpha), transparent) !important;
 }
 
 .dream-home > div:first-child {
@@ -224,21 +250,29 @@ html.codex-dream-skin .dream-home {
   overflow: hidden !important;
   border: 1px solid var(--dream-line) !important;
   border-radius: 20px !important;
-  background-image: var(--dream-art) !important;
-  background-repeat: no-repeat !important;
-  background-size: cover !important;
-  background-position: var(--dream-art-position) !important;
+  background: var(--dream-surface) !important;
   box-shadow: var(--dream-shadow) !important;
 }
 
-html.codex-dream-skin.dream-art-wide .dream-home > div:first-child > div:first-child > div:first-child {
-  background-size: cover !important;
+.dream-home > div:first-child > div:first-child > div:first-child::after {
+  content: "";
+  position: absolute;
+  z-index: 0;
+  inset: calc(var(--dream-wallpaper-blur) * -2);
+  pointer-events: none;
+  background-image: var(--dream-art);
+  background-repeat: no-repeat;
+  background-size: cover;
+  background-position: var(--dream-art-position);
+  filter: brightness(var(--dream-wallpaper-brightness)) blur(var(--dream-wallpaper-blur));
+  transform: scale(1.012);
+  transform-origin: center;
 }
 
 .dream-home > div:first-child > div:first-child > div:first-child::before {
   content: "";
   position: absolute;
-  z-index: 0;
+  z-index: 1;
   inset: 0;
   pointer-events: none;
   background: linear-gradient(90deg, var(--dream-hero-shade) 0 32%, transparent 70%);
@@ -258,7 +292,7 @@ html.codex-dream-skin.dream-safe-none .dream-home > div:first-child > div:first-
 
 .dream-home > div:first-child > div:first-child > div:first-child > div:first-child {
   position: relative;
-  z-index: 1;
+  z-index: 2;
   box-sizing: border-box;
   height: 100%;
   align-items: center !important;
@@ -369,7 +403,8 @@ html.codex-dream-skin .composer-surface-chrome {
   color: var(--dream-text) !important;
   border: 1px solid var(--dream-line) !important;
   border-radius: 18px !important;
-  background: color-mix(in oklab, var(--dream-surface-raised) 95%, transparent) !important;
+  background: color-mix(in oklab,
+    var(--dream-surface-raised) var(--dream-user-control-alpha), transparent) !important;
   box-shadow: 0 12px 34px color-mix(in oklab, var(--dream-accent) 8%, transparent) !important;
   backdrop-filter: blur(14px) saturate(1.06) !important;
 }
@@ -390,17 +425,77 @@ html.codex-dream-skin article {
   color: var(--dream-text);
 }
 
+/* Reading enhancement is deliberately scoped to task prose. It strengthens
+   long-form content without dimming the wallpaper or replacing native cards. */
+html.codex-dream-skin.dream-reading-enabled .dream-task
+  :where([class*="_markdownContent_"], .markdown, .prose) {
+  position: relative;
+  isolation: isolate;
+  color: var(--dream-text) !important;
+  text-shadow: 0 1px 1px color-mix(in oklab, var(--dream-surface) 42%, transparent);
+}
+
+html.codex-dream-skin.dream-reading-enabled .dream-task
+  :where([class*="_markdownContent_"], .markdown, .prose)::before {
+  content: "";
+  position: absolute;
+  z-index: -1;
+  inset: -10px -14px;
+  border: 1px solid color-mix(in oklab, var(--dream-line) 52%, transparent);
+  border-radius: 14px;
+  background: var(--dream-reading-surface);
+  box-shadow: 0 8px 28px color-mix(in oklab, var(--dream-canvas) 12%, transparent);
+}
+
+html.codex-dream-skin.dream-reading-enabled .dream-task
+  :where([data-markdown-copy="code-block"], [class*="_codeBlockPlaceholder_"]) {
+  color: var(--dream-text) !important;
+  border-color: var(--dream-line) !important;
+  background: var(--dream-reading-surface-strong) !important;
+}
+
+html.codex-dream-skin.dream-reading-enabled .dream-task
+  :where([data-markdown-copy="inline-code"], [class*="_inlineMarkdown_"]) {
+  color: var(--dream-text) !important;
+  border: 1px solid var(--dream-line-soft);
+  background: var(--dream-reading-surface-strong) !important;
+}
+
+html.codex-dream-skin.dream-reading-enabled .dream-task
+  :where(blockquote, [class*="_blockquote_"]) {
+  border-color: var(--dream-accent) !important;
+  background: color-mix(in oklab, var(--dream-reading-surface) 88%, var(--dream-accent) 12%) !important;
+}
+
+html.codex-dream-skin.dream-reading-enabled .dream-task
+  :where([data-markdown-table], table) {
+  border-color: var(--dream-line) !important;
+  background: var(--dream-reading-surface-strong) !important;
+}
+
 /* A 16:9 or wider image is painted once on the native window. The sidebar,
    title bar and route surface become coordinated readability layers instead
    of repeating or cropping the image inside individual panels. */
 html.codex-dream-skin.dream-art-wide:has(main.main-surface.dream-home-shell) body,
 html.codex-dream-skin.dream-art-wide:is(.dream-task-ambient, .dream-task-banner):has(main.main-surface:not(.dream-home-shell)) body {
   background-color: var(--dream-canvas) !important;
+  background-image: none !important;
+}
+
+html.codex-dream-skin.dream-art-wide:has(main.main-surface.dream-home-shell) body::before,
+html.codex-dream-skin.dream-art-wide:is(.dream-task-ambient, .dream-task-banner):has(main.main-surface:not(.dream-home-shell)) body::before {
+  content: "";
+  position: fixed;
+  z-index: -1;
+  inset: calc(var(--dream-wallpaper-blur) * -2);
   background-image: var(--dream-art) !important;
   background-position: var(--dream-art-position) !important;
   background-size: cover !important;
   background-repeat: no-repeat !important;
   background-attachment: fixed !important;
+  filter: brightness(var(--dream-wallpaper-brightness)) blur(var(--dream-wallpaper-blur));
+  transform: scale(1.012);
+  transform-origin: center;
 }
 
 html.codex-dream-skin.dream-art-wide:has(main.main-surface.dream-home-shell)
@@ -482,7 +577,9 @@ html.codex-dream-skin.dream-art-wide main.main-surface.dream-home-shell
 }
 
 html.codex-dream-skin.dream-art-wide main.main-surface.dream-home-shell
-  .dream-home > div:first-child > div:first-child > div:first-child::before {
+  .dream-home > div:first-child > div:first-child > div:first-child::before,
+html.codex-dream-skin.dream-art-wide main.main-surface.dream-home-shell
+  .dream-home > div:first-child > div:first-child > div:first-child::after {
   content: none !important;
 }
 
@@ -565,6 +662,329 @@ html.codex-dream-skin.dream-art-wide main.main-surface
   background: transparent !important;
 }
 
+#codex-dream-skin-chrome .dream-ambient {
+  position: absolute;
+  display: block;
+  pointer-events: none;
+  will-change: transform, opacity;
+}
+
+#codex-dream-skin-chrome .dream-ambient--dust-near,
+#codex-dream-skin-chrome .dream-ambient--dust-far {
+  inset: -18%;
+  background-repeat: repeat;
+  mix-blend-mode: screen;
+}
+
+#codex-dream-skin-chrome .dream-ambient--dust-near {
+  opacity: .2;
+  background-image:
+    radial-gradient(circle, color-mix(in oklab, var(--dream-accent) 68%, white) 0 1px, transparent 1.8px),
+    radial-gradient(circle, color-mix(in oklab, var(--dream-accent) 42%, white) 0 1.3px, transparent 2px);
+  background-size: 132px 118px, 188px 172px;
+}
+
+#codex-dream-skin-chrome .dream-ambient--dust-far {
+  opacity: .12;
+  background-image:
+    radial-gradient(circle, color-mix(in oklab, var(--dream-accent) 36%, white) 0 1px, transparent 1.6px),
+    radial-gradient(circle, white 0 .8px, transparent 1.4px);
+  background-size: 224px 196px, 276px 238px;
+}
+
+#codex-dream-skin-chrome .dream-ambient--glow-primary,
+#codex-dream-skin-chrome .dream-ambient--glow-soft {
+  width: 42vw;
+  height: 42vw;
+  min-width: 420px;
+  min-height: 420px;
+  border-radius: 50%;
+  filter: blur(20px);
+  mix-blend-mode: screen;
+}
+
+#codex-dream-skin-chrome .dream-ambient--glow-primary {
+  top: -24vw;
+  right: -12vw;
+  opacity: .12;
+  background: radial-gradient(circle, color-mix(in oklab, var(--dream-accent) 78%, white), transparent 68%);
+}
+
+#codex-dream-skin-chrome .dream-ambient--glow-soft {
+  bottom: -30vw;
+  left: 12vw;
+  opacity: .09;
+  background: radial-gradient(circle, color-mix(in oklab, var(--dream-accent) 34%, white), transparent 70%);
+}
+
+html.codex-dream-skin.dream-motion-enabled body::before,
+html.codex-dream-skin.dream-motion-enabled .dream-home
+  > div:first-child > div:first-child > div:first-child::after,
+html.codex-dream-skin.dream-motion-enabled .dream-task::before {
+  animation: dream-wallpaper-drift 24s cubic-bezier(.45, 0, .55, 1) infinite alternate;
+}
+
+html.codex-dream-skin.dream-motion-enabled #codex-dream-skin-chrome .dream-ambient--dust-near {
+  animation: dream-dust-near 28s linear infinite;
+}
+
+html.codex-dream-skin.dream-motion-enabled #codex-dream-skin-chrome .dream-ambient--dust-far {
+  animation: dream-dust-far 44s linear infinite;
+}
+
+html.codex-dream-skin.dream-motion-enabled #codex-dream-skin-chrome .dream-ambient--glow-primary {
+  animation: dream-glow-primary 18s cubic-bezier(.45, 0, .55, 1) infinite alternate;
+}
+
+html.codex-dream-skin.dream-motion-enabled #codex-dream-skin-chrome .dream-ambient--glow-soft {
+  animation: dream-glow-soft 24s cubic-bezier(.45, 0, .55, 1) infinite alternate;
+}
+
+html.codex-dream-skin.dream-motion-disabled #codex-dream-skin-chrome {
+  display: none;
+}
+
+#codex-dream-skin-controls {
+  position: fixed;
+  z-index: 2147483000;
+  right: 12px;
+  bottom: 12px;
+  color: var(--dream-text);
+  font: 12px/1.35 "Segoe UI Variable Text", "Segoe UI", "Microsoft YaHei UI", system-ui, sans-serif;
+  pointer-events: none;
+}
+
+#codex-dream-skin-controls :where(button, input) {
+  font: inherit;
+}
+
+.dream-controls__panel {
+  position: absolute;
+  right: 0;
+  bottom: 42px;
+  width: 268px;
+  box-sizing: border-box;
+  padding: 14px;
+  overflow: hidden;
+  border: 1px solid var(--dream-line);
+  border-radius: 14px;
+  color: var(--dream-text);
+  background: color-mix(in oklab,
+    var(--dream-surface-raised) var(--dream-user-control-alpha), transparent);
+  box-shadow: 0 18px 54px color-mix(in oklab, var(--dream-canvas) 34%, transparent);
+  backdrop-filter: blur(18px) saturate(1.08);
+  pointer-events: auto;
+  transform-origin: right bottom;
+  animation: dream-controls-enter 160ms cubic-bezier(.16, 1, .3, 1) both;
+}
+
+.dream-controls__panel[hidden] {
+  display: none;
+}
+
+.dream-controls__header {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  margin-bottom: 10px;
+}
+
+.dream-controls__header strong {
+  font-size: 13px;
+  font-weight: 680;
+  letter-spacing: .01em;
+}
+
+.dream-controls__header span,
+.dream-control-row output,
+.dream-switch-row output,
+.dream-wallpaper-row output {
+  color: var(--dream-text-muted);
+  font-size: 11px;
+}
+
+.dream-control-row {
+  display: grid;
+  grid-template-columns: 70px 1fr 34px;
+  gap: 8px;
+  align-items: center;
+  min-height: 30px;
+}
+
+.dream-control-row input[type="range"] {
+  width: 100%;
+  accent-color: var(--dream-accent);
+}
+
+.dream-control-row output,
+.dream-switch-row output {
+  text-align: right;
+}
+
+.dream-switch-row {
+  display: grid;
+  grid-template-columns: 1fr 34px 34px;
+  gap: 8px;
+  align-items: center;
+  min-height: 32px;
+}
+
+.dream-switch-row input {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  opacity: 0;
+  pointer-events: none;
+}
+
+.dream-switch {
+  position: relative;
+  width: 32px;
+  height: 18px;
+  border-radius: 999px;
+  background: color-mix(in oklab, var(--dream-text-muted) 42%, transparent);
+  transition: background-color 150ms cubic-bezier(.16, 1, .3, 1);
+}
+
+.dream-switch::after {
+  content: "";
+  position: absolute;
+  top: 3px;
+  left: 3px;
+  width: 12px;
+  height: 12px;
+  border-radius: 50%;
+  background: var(--dream-surface-raised);
+  box-shadow: 0 1px 4px color-mix(in oklab, var(--dream-canvas) 36%, transparent);
+  transition: transform 150ms cubic-bezier(.16, 1, .3, 1);
+}
+
+.dream-switch-row input:checked + .dream-switch {
+  background: var(--dream-accent);
+}
+
+.dream-switch-row input:checked + .dream-switch::after {
+  transform: translateX(14px);
+}
+
+.dream-switch-row input:focus-visible + .dream-switch {
+  outline: 2px solid var(--dream-accent);
+  outline-offset: 2px;
+}
+
+.dream-wallpaper-row {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr);
+  gap: 8px;
+  align-items: center;
+  margin-top: 8px;
+  padding-top: 10px;
+  border-top: 1px solid var(--dream-line-soft);
+}
+
+.dream-wallpaper-row input[type="file"] {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  opacity: 0;
+  pointer-events: none;
+}
+
+.dream-wallpaper-row button,
+.dream-controls__reset,
+.dream-controls__toggle {
+  border: 1px solid var(--dream-line);
+  color: var(--dream-text);
+  background: var(--dream-accent-soft);
+  cursor: pointer;
+  transition: transform 140ms cubic-bezier(.16, 1, .3, 1),
+    background-color 140ms cubic-bezier(.16, 1, .3, 1);
+}
+
+.dream-wallpaper-row button,
+.dream-controls__reset {
+  min-height: 28px;
+  padding: 4px 9px;
+  border-radius: 8px;
+}
+
+.dream-wallpaper-row button:hover,
+.dream-controls__reset:hover,
+.dream-controls__toggle:hover {
+  background: var(--dream-accent-hover);
+  transform: translateY(-1px);
+}
+
+.dream-wallpaper-row button:focus-visible,
+.dream-controls__reset:focus-visible,
+.dream-controls__toggle:focus-visible {
+  outline: 2px solid var(--dream-accent);
+  outline-offset: 2px;
+}
+
+.dream-wallpaper-row button:disabled {
+  cursor: wait;
+  opacity: .55;
+}
+
+.dream-wallpaper-row output {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.dream-wallpaper-row output.is-error {
+  color: color-mix(in oklab, var(--dream-accent) 82%, var(--dream-text));
+}
+
+.dream-controls__reset {
+  width: 100%;
+  margin-top: 10px;
+  background: transparent;
+}
+
+.dream-controls__toggle {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  min-height: 32px;
+  padding: 5px 10px;
+  border-radius: 999px;
+  box-shadow: 0 8px 22px color-mix(in oklab, var(--dream-canvas) 24%, transparent);
+  backdrop-filter: blur(12px);
+  pointer-events: auto;
+}
+
+@keyframes dream-wallpaper-drift {
+  from { transform: scale(1.012) translate3d(-.18%, -.12%, 0); }
+  to { transform: scale(1.026) translate3d(.18%, .12%, 0); }
+}
+
+@keyframes dream-dust-near {
+  from { transform: translate3d(-2%, -3%, 0); }
+  to { transform: translate3d(4%, 5%, 0); }
+}
+
+@keyframes dream-dust-far {
+  from { transform: translate3d(3%, -2%, 0); }
+  to { transform: translate3d(-4%, 4%, 0); }
+}
+
+@keyframes dream-glow-primary {
+  from { transform: translate3d(-2%, -1%, 0) scale(.94); opacity: .08; }
+  to { transform: translate3d(4%, 3%, 0) scale(1.08); opacity: .15; }
+}
+
+@keyframes dream-glow-soft {
+  from { transform: translate3d(3%, 2%, 0) scale(.92); opacity: .06; }
+  to { transform: translate3d(-4%, -3%, 0) scale(1.1); opacity: .12; }
+}
+
+@keyframes dream-controls-enter {
+  from { transform: translateY(6px) scale(.985); opacity: 0; }
+  to { transform: translateY(0) scale(1); opacity: 1; }
+}
+
 @media (max-width: 1120px) {
   html.codex-dream-skin .dream-home {
     --thread-content-max-width: min(940px, calc(100cqw - 36px)) !important;
@@ -611,6 +1031,15 @@ html.codex-dream-skin.dream-art-wide main.main-surface
 }
 
 @media (max-width: 680px) {
+  #codex-dream-skin-controls {
+    right: 8px;
+    bottom: 62px;
+  }
+
+  .dream-controls__panel {
+    width: min(268px, calc(100vw - 24px));
+  }
+
   .dream-home > div:first-child > div:first-child > div:first-child::before,
   html.codex-dream-skin.dream-safe-right .dream-home > div:first-child > div:first-child > div:first-child::before,
   html.codex-dream-skin.dream-safe-center .dream-home > div:first-child > div:first-child > div:first-child::before {
@@ -638,5 +1067,13 @@ html.codex-dream-skin.dream-art-wide main.main-surface
   html.codex-dream-skin *::after {
     scroll-behavior: auto !important;
     transition-duration: .01ms !important;
+  }
+
+  html.codex-dream-skin body::before,
+  html.codex-dream-skin .dream-home > div:first-child > div:first-child > div:first-child::after,
+  html.codex-dream-skin .dream-task::before,
+  #codex-dream-skin-chrome .dream-ambient,
+  .dream-controls__panel {
+    animation: none !important;
   }
 }

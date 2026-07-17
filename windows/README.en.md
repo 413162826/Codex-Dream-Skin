@@ -71,12 +71,20 @@ Next, use the generated screenshot to check horizontal overflow and text contras
 
 Open `Codex Dream Skin - Tray` to:
 
-- Import a PNG, JPEG, or WebP background.
+- Import a PNG, JPEG, WebP, GIF, or AVIF background.
 - Save the active theme and switch through saved themes.
 - Pause or resume the skin.
 - Reapply the theme or fully restore Codex.
 
 Import a UI-free wallpaper rather than a preview containing a window, sidebar, composer, text, or buttons. Images may be at most 16 MB, 16384 pixels on either side, and 50 million total pixels.
+
+The compact **Appearance** button in the lower-right corner of Codex provides live, in-app controls for:
+
+- Surface transparency, wallpaper brightness, and wallpaper sharpness.
+- Ambient motion and long-form reading enhancement.
+- A per-theme wallpaper override, including animated GIF files.
+
+Appearance values persist in the current Codex profile. An in-app wallpaper override is stored locally under the active theme ID and survives renderer reloads. **Restore current theme** removes that override and returns to the wallpaper selected by the tray or theme store.
 
 ## Restore and remove shortcuts
 

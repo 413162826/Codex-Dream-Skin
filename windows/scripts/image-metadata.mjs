@@ -102,6 +102,40 @@ function webpDimensions(bytes) {
   return null;
 }
 
+function gifDimensions(bytes) {
+  if (bytes.length < 10) return null;
+  const signature = ascii(bytes, 0, 6);
+  if (signature !== "GIF87a" && signature !== "GIF89a") return null;
+  const width = uint16le(bytes, 6);
+  const height = uint16le(bytes, 8);
+  return width > 0 && height > 0 ? { width, height } : null;
+}
+
+function avifDimensions(bytes) {
+  if (bytes.length < 24 || ascii(bytes, 4, 4) !== "ftyp") return null;
+  const ftypSize = uint32be(bytes, 0);
+  if (ftypSize < 16 || ftypSize > bytes.length) return null;
+  const brands = [];
+  for (let offset = 8; offset + 4 <= ftypSize; offset += 4) {
+    brands.push(ascii(bytes, offset, 4));
+  }
+  if (!brands.some((brand) => brand === "avif" || brand === "avis")) return null;
+
+  // AVIF stores the primary image dimensions in an ImageSpatialExtentsProperty
+  // (`ispe`) full box. Walk only well-bounded boxes so random payload bytes are
+  // never accepted as dimensions.
+  for (let typeOffset = 4; typeOffset + 16 <= bytes.length; typeOffset += 1) {
+    if (ascii(bytes, typeOffset, 4) !== "ispe") continue;
+    const boxStart = typeOffset - 4;
+    const boxSize = uint32be(bytes, boxStart);
+    if (boxSize < 20 || boxStart + boxSize > bytes.length) continue;
+    const width = uint32be(bytes, typeOffset + 8);
+    const height = uint32be(bytes, typeOffset + 12);
+    if (width > 0 && height > 0) return { width, height };
+  }
+  return null;
+}
+
 export function classifyImageDimensions({ width, height }) {
   const ratio = width / height;
   if (
@@ -131,6 +165,8 @@ export function readImageMetadata(value, extension = "") {
   else if (normalized === ".jpg" || normalized === ".jpeg" ||
     (bytes[0] === 0xff && bytes[1] === 0xd8)) dimensions = jpegDimensions(bytes);
   else if (normalized === ".webp" || ascii(bytes, 8, 4) === "WEBP") dimensions = webpDimensions(bytes);
+  else if (normalized === ".gif" || ascii(bytes, 0, 3) === "GIF") dimensions = gifDimensions(bytes);
+  else if (normalized === ".avif" || ascii(bytes, 4, 4) === "ftyp") dimensions = avifDimensions(bytes);
   return dimensions ? classifyImageDimensions(dimensions) : null;
 }
 

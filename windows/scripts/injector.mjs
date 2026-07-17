@@ -7,7 +7,7 @@ import { readImageMetadata } from "./image-metadata.mjs";
 const scriptPath = fileURLToPath(import.meta.url);
 const here = path.dirname(scriptPath);
 const root = path.resolve(here, "..");
-const SKIN_VERSION = "1.2.0";
+const SKIN_VERSION = "1.3.0";
 const MAX_ART_BYTES = 16 * 1024 * 1024;
 const STRONG_THEME_AUDIT_MS = 30000;
 const LOOPBACK_HOSTS = new Set(["127.0.0.1", "localhost", "[::1]", "::1"]);
@@ -327,7 +327,7 @@ async function loadTheme(themeDir) {
     throw new Error("Theme image must remain inside the selected theme directory");
   }
   const extension = path.extname(imagePath).toLowerCase();
-  if (![".png", ".jpg", ".jpeg", ".webp"].includes(extension)) {
+  if (![".png", ".jpg", ".jpeg", ".webp", ".gif", ".avif"].includes(extension)) {
     throw new Error(`Unsupported theme image format: ${extension || "missing"}`);
   }
   const realImagePath = await fs.realpath(imagePath);
@@ -396,7 +396,9 @@ async function loadPayload(themeDir = path.join(root, "assets"), candidateTheme 
   ]);
   const extension = path.extname(loadedTheme.imagePath).toLowerCase();
   const mime = extension === ".jpg" || extension === ".jpeg" ? "image/jpeg"
-    : extension === ".webp" ? "image/webp" : "image/png";
+    : extension === ".webp" ? "image/webp"
+      : extension === ".gif" ? "image/gif"
+        : extension === ".avif" ? "image/avif" : "image/png";
   const artDataUrl = `data:${mime};base64,${loadedTheme.imageBytes.toString("base64")}`;
   const payload = template
     .replace("__DREAM_CSS_JSON__", JSON.stringify(css))
@@ -500,9 +502,12 @@ export function earlyPayloadFor(payload, revision) {
     window[generationKey] = generation;
     let observer = null;
     let timeout = null;
+    let domReadyHandler = null;
     const stop = () => {
       observer?.disconnect();
       observer = null;
+      if (domReadyHandler) document.removeEventListener?.("DOMContentLoaded", domReadyHandler);
+      domReadyHandler = null;
       if (timeout) clearTimeout(timeout);
       timeout = null;
     };
@@ -518,10 +523,18 @@ export function earlyPayloadFor(payload, revision) {
       window[appliedKey] = generation;
       return true;
     };
+    const observeShell = () => {
+      if (install()) return;
+      if (!observer && typeof MutationObserver === "function" && document.documentElement) {
+        observer = new MutationObserver(install);
+        observer.observe(document.documentElement, { childList: true, subtree: true });
+      }
+    };
     if (install()) return;
-    if (typeof MutationObserver === "function" && document.documentElement) {
-      observer = new MutationObserver(install);
-      observer.observe(document.documentElement, { childList: true, subtree: true });
+    if (document.documentElement) observeShell();
+    else {
+      domReadyHandler = observeShell;
+      document.addEventListener?.("DOMContentLoaded", domReadyHandler, { once: true });
     }
     timeout = setTimeout(stop, 10000);
   })()`;

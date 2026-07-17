@@ -76,7 +76,7 @@ function Assert-DreamSkinImageFile {
     throw "Image does not exist: $fullPath"
   }
   $extension = [System.IO.Path]::GetExtension($fullPath).ToLowerInvariant()
-  if ($extension -notin @('.png', '.jpg', '.jpeg', '.webp')) {
+  if ($extension -notin @('.png', '.jpg', '.jpeg', '.webp', '.gif', '.avif')) {
     throw "Unsupported image format: $extension"
   }
   $length = (Get-Item -LiteralPath $fullPath -Force).Length

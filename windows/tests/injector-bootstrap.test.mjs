@@ -9,22 +9,28 @@ const here = path.dirname(fileURLToPath(import.meta.url));
 const injectorPath = path.resolve(here, "../scripts/injector.mjs");
 const source = await fs.readFile(injectorPath, "utf8");
 
-function createFixture() {
+function createFixture({ documentReady = true } = {}) {
   const observers = [];
   const timers = new Map();
+  const listeners = new Map();
   let nextTimer = 1;
   const markers = { shell: false, sidebar: false };
+  const document = {
+    documentElement: documentReady ? {} : null,
+    body: documentReady ? {} : null,
+    querySelector(selector) {
+      if (selector === "main.main-surface") return markers.shell ? {} : null;
+      if (selector === "aside.app-shell-left-panel") return markers.sidebar ? {} : null;
+      return null;
+    },
+    addEventListener(type, callback) { listeners.set(type, callback); },
+    removeEventListener(type, callback) {
+      if (listeners.get(type) === callback) listeners.delete(type);
+    },
+  };
   const context = {
     window: { installs: [] },
-    document: {
-      documentElement: {},
-      body: {},
-      querySelector(selector) {
-        if (selector === "main.main-surface") return markers.shell ? {} : null;
-        if (selector === "aside.app-shell-left-panel") return markers.sidebar ? {} : null;
-        return null;
-      },
-    },
+    document,
     MutationObserver: class {
       constructor(callback) {
         this.callback = callback;
@@ -41,7 +47,12 @@ function createFixture() {
     },
     clearTimeout(id) { timers.delete(id); },
   };
-  return { context, markers, observers };
+  const fireDOMContentLoaded = () => {
+    document.documentElement = {};
+    document.body = {};
+    listeners.get("DOMContentLoaded")?.();
+  };
+  return { context, markers, observers, fireDOMContentLoaded };
 }
 
 const guarded = createFixture();
@@ -66,6 +77,20 @@ assert.deepEqual(
   "A stale early script must yield to the newest watcher generation.",
 );
 assert.equal(generations.context.window.__CODEX_DREAM_SKIN_EARLY_APPLIED__, "new");
+
+const documentStart = createFixture({ documentReady: false });
+vm.runInNewContext(earlyPayloadFor('window.installs.push("document-start")', "document-start"), documentStart.context);
+assert.equal(documentStart.observers.length, 0, "Document-start injection must wait until a root exists.");
+documentStart.fireDOMContentLoaded();
+assert.equal(documentStart.observers.length, 1, "DOMContentLoaded must begin watching for the Codex shell.");
+documentStart.markers.shell = true;
+documentStart.markers.sidebar = true;
+documentStart.observers[0].callback([]);
+assert.deepEqual(
+  documentStart.context.window.installs,
+  ["document-start"],
+  "The registered early payload must survive full document reload timing.",
+);
 
 const registrationStart = source.indexOf("earlyScriptId = await registerEarlyPayload");
 const evaluateStart = source.indexOf("await session.evaluate(earlyPayloadFor", registrationStart);

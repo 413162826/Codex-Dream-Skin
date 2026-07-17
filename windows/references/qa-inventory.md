@@ -26,6 +26,9 @@
 - Config safety: Chinese project names, LF/CRLF choice, quoted target keys, table-header comments, and unrelated TOML sections survive install/selective restore; ambiguous target shapes fail unchanged, exact recovery keeps a copy of the replaced current file, and install refuses both registered and state-recorded old Codex processes.
 - Theme safety: empty/over-16 MB images, over-16384px/50MP dimensions, path escapes, symlinks/junctions, malformed JSON, and unsupported formats are rejected before payload construction.
 - Tray lifecycle: pause/resume reflects the clicked state, bundled Arina Hashimoto theme is present on first install, and complete restore terminates any separately launched tray before it can reapply the skin.
+- In-app appearance: each transparency/brightness/sharpness slider updates the renderer immediately, motion and reading switches toggle their root classes, and all five values survive a full renderer reload.
+- Animated wallpaper: import a valid GIF through the in-app picker, confirm its filename and blob URL become active, compare two frames with CSS motion disabled, then reload and confirm the same per-theme override returns.
+- Wallpaper reset: use **Restore current theme**, confirm the IndexedDB override is removed, the managed theme artwork returns, and native controls stay interactive.
 
 ## Visual checks
 
@@ -33,6 +36,8 @@
 - Narrower window: accept Codex's native responsive card reduction or omission; no essential control is covered and wallpaper cropping preserves the focus/safe-area contract.
 - Normal task: the wallpaper is visibly quieter than home, messages keep high contrast, and composer does not overlap content.
 - Inspect the sidebar, header, wallpaper edges, native card labels when present, project utility row, composer controls, scrollbar, dialogs, and menus.
+- Open the lower-right appearance panel on both home and task routes; it must remain readable, keyboard-focusable, compact, and clear of the composer and native side panel.
+- With reading enhancement enabled, inspect paragraphs, inline code, code blocks, blockquotes, and tables over both bright and dark wallpaper regions; wallpaper detail should remain visible outside the reading surface.
 - Reject black/transparent sidebar artifacts, clipped controls, duplicated/disconnected project labels, rasterized native controls, fake UI inside the wallpaper, weak contrast, or decorations intercepting clicks.
 
 ## Exploratory checks
@@ -47,6 +52,6 @@
 
 ## Automated checks
 
-- `tests/run-tests.ps1`: strict UTF-8/no-BOM writes, UTF-16 rejection, LF/CRLF preservation, concurrent-write detection, exact backup/recovery, `[desktop]`-scoped restore, ambiguous TOML rejection, non-ASCII paths, Appx/state identity, argument quoting, theme seeding/import/save/switch/pause, byte/dimension limits, junction rejection, payload construction, Browser ID, loopback URL rejection, and renderer isolation for transparent auxiliary windows.
+- `tests/run-tests.ps1`: strict UTF-8/no-BOM writes, UTF-16 rejection, LF/CRLF preservation, concurrent-write detection, exact backup/recovery, `[desktop]`-scoped restore, ambiguous TOML rejection, non-ASCII paths, Appx/state identity, argument quoting, theme seeding/import/save/switch/pause, PNG/JPEG/WebP/GIF/AVIF byte and dimension limits, junction rejection, payload construction, Browser ID, loopback URL rejection, renderer reload bootstrap, live appearance state, and renderer isolation for transparent auxiliary windows.
 - `node --check` for the injector and renderer payload.
 - Live Windows signoff remains required for Store process ownership, restart consent, screenshot, and CDP closure.

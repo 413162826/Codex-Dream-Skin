@@ -93,7 +93,7 @@ try {
     $null = Add-DreamSkinTrayItem -Items $menu.Items -Text '更换背景图' -Action {
       $dialog = [System.Windows.Forms.OpenFileDialog]::new()
       $dialog.Title = '选择 Codex Dream Skin 背景图'
-      $dialog.Filter = 'Image files|*.png;*.jpg;*.jpeg;*.webp|All files|*.*'
+      $dialog.Filter = 'Image files|*.png;*.jpg;*.jpeg;*.webp;*.gif;*.avif|All files|*.*'
       $dialog.Multiselect = $false
       try {
         if ($dialog.ShowDialog() -eq [System.Windows.Forms.DialogResult]::OK) {
