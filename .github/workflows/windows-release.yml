@@ -1,0 +1,121 @@
+name: Windows Release
+
+on:
+  push:
+    tags:
+      - "windows-v*"
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  build:
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+
+      - name: Validate release version
+        shell: pwsh
+        run: |
+          $manifest = Get-Content -LiteralPath .\windows\assets\version.json -Raw -Encoding utf8 | ConvertFrom-Json
+          if ($manifest.version -notmatch '^\d+\.\d+\.\d+$') { throw 'Invalid Windows version manifest.' }
+          if ($env:GITHUB_REF_TYPE -eq 'tag' -and $env:GITHUB_REF_NAME -cne "windows-v$($manifest.version)") {
+            throw "Tag $env:GITHUB_REF_NAME does not match Windows version $($manifest.version)."
+          }
+
+      - name: Run Windows regression suite
+        shell: cmd
+        run: powershell.exe -NoLogo -NoProfile -ExecutionPolicy Bypass -File .\windows\tests\run-tests.ps1
+
+      - name: Install pinned Inno Setup
+        shell: pwsh
+        run: |
+          $uri = 'https://github.com/jrsoftware/issrc/releases/download/is-6_7_3/innosetup-6.7.3.exe'
+          $path = Join-Path $env:RUNNER_TEMP 'innosetup-6.7.3.exe'
+          Invoke-WebRequest -Uri $uri -OutFile $path
+          $expected = '9c73c3bae7ed48d44112a0f48e66742c00090bdb5bef71d9d3c056c66e97b732'
+          $actual = (Get-FileHash -LiteralPath $path -Algorithm SHA256).Hash.ToLowerInvariant()
+          if ($actual -cne $expected) { throw 'Inno Setup compiler hash mismatch.' }
+          $process = Start-Process -FilePath $path -ArgumentList @('/VERYSILENT', '/SUPPRESSMSGBOXES', '/NORESTART', '/SP-') -Wait -PassThru
+          if ($process.ExitCode -ne 0) { throw "Inno Setup installation failed: $($process.ExitCode)" }
+
+      - name: Build installer
+        shell: pwsh
+        run: .\windows\scripts\build-windows-release.ps1 -OutputDirectory .\dist
+
+      - name: Test installer and uninstaller package lifecycle
+        shell: pwsh
+        run: |
+          $installers = @(Get-ChildItem -LiteralPath .\dist -Filter '*-Setup.exe' -File)
+          if ($installers.Count -ne 1) { throw 'Expected exactly one Windows installer.' }
+          .\windows\tests\installer-package.test.ps1 -InstallerPath $installers[0].FullName
+
+      - name: Sign installer when certificate is configured
+        shell: pwsh
+        env:
+          WINDOWS_CODE_SIGNING_CERTIFICATE_BASE64: ${{ secrets.WINDOWS_CODE_SIGNING_CERTIFICATE_BASE64 }}
+          WINDOWS_CODE_SIGNING_CERTIFICATE_PASSWORD: ${{ secrets.WINDOWS_CODE_SIGNING_CERTIFICATE_PASSWORD }}
+        run: |
+          if ([string]::IsNullOrWhiteSpace($env:WINDOWS_CODE_SIGNING_CERTIFICATE_BASE64)) {
+            Write-Host 'Code-signing certificate is not configured; publishing an unsigned installer.'
+            exit 0
+          }
+          $pfx = Join-Path $env:RUNNER_TEMP 'windows-signing.pfx'
+          [System.IO.File]::WriteAllBytes($pfx, [Convert]::FromBase64String($env:WINDOWS_CODE_SIGNING_CERTIFICATE_BASE64))
+          $signtool = Get-ChildItem -Path "${env:ProgramFiles(x86)}\Windows Kits\10\bin" -Filter signtool.exe -Recurse |
+            Where-Object { $_.FullName -match '\\x64\\signtool\.exe$' } | Sort-Object FullName -Descending | Select-Object -First 1
+          if (-not $signtool) { throw 'signtool.exe was not found.' }
+          $installers = @(Get-ChildItem -LiteralPath .\dist -Filter '*-Setup.exe' -File)
+          if ($installers.Count -ne 1) { throw 'Expected exactly one Windows installer.' }
+          $installer = $installers[0]
+          & $signtool.FullName sign /fd SHA256 /f $pfx /p $env:WINDOWS_CODE_SIGNING_CERTIFICATE_PASSWORD `
+            /tr http://timestamp.digicert.com /td SHA256 $installer.FullName
+          if ($LASTEXITCODE -ne 0) { throw 'Installer signing failed.' }
+          $signature = Get-AuthenticodeSignature -LiteralPath $installer.FullName
+          if ($signature.Status -ne 'Valid') { throw "Installer signature is not valid: $($signature.Status)" }
+          Remove-Item -LiteralPath $pfx -Force
+
+      - name: Refresh checksum and verify installer
+        shell: pwsh
+        run: |
+          $installers = @(Get-ChildItem -LiteralPath .\dist -Filter '*-Setup.exe' -File)
+          if ($installers.Count -ne 1) { throw 'Expected exactly one Windows installer.' }
+          $installer = $installers[0]
+          $hash = (Get-FileHash -LiteralPath $installer.FullName -Algorithm SHA256).Hash.ToLowerInvariant()
+          $encoding = New-Object System.Text.UTF8Encoding($false)
+          [System.IO.File]::WriteAllText("$($installer.FullName).sha256", "$hash  $($installer.Name)`n", $encoding)
+          . .\windows\scripts\config-utf8.ps1
+          . .\windows\scripts\update-core.ps1
+          $versionManifest = Read-DreamSkinVersionManifest -Path .\windows\assets\version.json
+          $updateManifest = New-DreamSkinUpdateManifest -Version $versionManifest.VersionText `
+            -Repository $versionManifest.Repository -AssetName $installer.Name -Sha256 $hash -Size $installer.Length
+          [System.IO.File]::WriteAllText(
+            (Join-Path $installer.DirectoryName 'windows-update.json'),
+            (($updateManifest | ConvertTo-Json -Depth 3) + "`n"),
+            $encoding
+          )
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: codex-dream-skin-windows-installer
+          path: dist/*
+          if-no-files-found: error
+
+      - name: Publish GitHub Release
+        if: github.ref_type == 'tag'
+        shell: pwsh
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          $version = (Get-Content -LiteralPath .\windows\assets\version.json -Raw -Encoding utf8 | ConvertFrom-Json).version
+          $assets = @(Get-ChildItem -LiteralPath .\dist -File | ForEach-Object { $_.FullName })
+          if ($assets.Count -ne 3) { throw 'Expected the installer, SHA-256 sidecar, and update manifest.' }
+          gh release create $env:GITHUB_REF_NAME @assets `
+            --repo $env:GITHUB_REPOSITORY `
+            --verify-tag `
+            --title "Windows v$version：EXE 安装、卸载与自动更新" `
+            --notes-file .\windows\RELEASE.md

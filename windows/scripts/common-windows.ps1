@@ -58,6 +58,7 @@ function Get-DreamSkinRuntimeEnginePaths {
     Start = Join-Path $scripts 'start-dream-skin.ps1'
     Restore = Join-Path $scripts 'restore-dream-skin.ps1'
     Tray = Join-Path $scripts 'tray-dream-skin.ps1'
+    Update = Join-Path $scripts 'update-dream-skin.ps1'
   }
 }
 
@@ -78,6 +79,23 @@ function Test-DreamSkinTrayActive {
   } finally {
     if ($acquired) { try { $mutex.ReleaseMutex() } catch {} }
     $mutex.Dispose()
+  }
+}
+
+function Stop-DreamSkinTrayProcesses {
+  $trayScript = [System.IO.Path]::GetFullPath((Join-Path $PSScriptRoot 'tray-dream-skin.ps1'))
+  $processes = @(Get-CimInstance Win32_Process -Filter "Name = 'powershell.exe' OR Name = 'pwsh.exe'" `
+    -ErrorAction Stop)
+  foreach ($process in $processes) {
+    if ($process.ProcessId -eq $PID -or -not $process.CommandLine) { continue }
+    if ($process.CommandLine.IndexOf($trayScript, [System.StringComparison]::OrdinalIgnoreCase) -lt 0) {
+      continue
+    }
+    Stop-Process -Id $process.ProcessId -Force -ErrorAction Stop
+    try { Wait-Process -Id $process.ProcessId -Timeout 5 -ErrorAction Stop } catch {}
+    if (Get-Process -Id $process.ProcessId -ErrorAction SilentlyContinue) {
+      throw "Dream Skin tray did not stop: PID $($process.ProcessId)"
+    }
   }
 }
 
@@ -113,6 +131,29 @@ function Remove-DreamSkinRuntimeTree {
   Remove-Item -LiteralPath $fullPath -Recurse -Force -ErrorAction Stop
 }
 
+function Remove-DreamSkinStateTree {
+  param(
+    [Parameter(Mandatory = $true)][string]$StateRoot,
+    [string]$ExpectedStateRoot = (Join-Path $env:LOCALAPPDATA 'CodexDreamSkin')
+  )
+  $expected = [System.IO.Path]::GetFullPath($ExpectedStateRoot)
+  $actual = [System.IO.Path]::GetFullPath($StateRoot)
+  if (-not (Test-DreamSkinPathEqual -Left $actual -Right $expected)) {
+    throw "Refusing to purge an unexpected Dream Skin state path: $actual"
+  }
+  if (-not (Test-Path -LiteralPath $actual)) { return }
+  if (-not (Get-Command Assert-DreamSkinNoReparseComponents -ErrorAction SilentlyContinue)) {
+    throw 'Dream Skin managed-path validation is unavailable.'
+  }
+  Assert-DreamSkinNoReparseComponents -Path $actual
+  foreach ($item in Get-ChildItem -LiteralPath $actual -Recurse -Force -ErrorAction Stop) {
+    if (($item.Attributes -band [System.IO.FileAttributes]::ReparsePoint) -ne 0) {
+      throw "Dream Skin state contains a junction or symbolic link: $($item.FullName)"
+    }
+  }
+  Remove-Item -LiteralPath $actual -Recurse -Force -ErrorAction Stop
+}
+
 function Install-DreamSkinRuntimeEngine {
   param(
     [Parameter(Mandatory = $true)][string]$SkillRoot,
@@ -130,6 +171,7 @@ function Install-DreamSkinRuntimeEngine {
     'assets\dream-skin.css',
     'assets\renderer-inject.js',
     'assets\theme.json',
+    'assets\version.json',
     'assets\wallpapers\fortune-workshop.jpg',
     'assets\wallpapers\gothic-void.jpg',
     'assets\wallpapers\red-horizon.jpg',
@@ -143,6 +185,9 @@ function Install-DreamSkinRuntimeEngine {
     'scripts\start-dream-skin.ps1',
     'scripts\theme-windows.ps1',
     'scripts\tray-dream-skin.ps1',
+    'scripts\uninstall-dream-skin.ps1',
+    'scripts\update-core.ps1',
+    'scripts\update-dream-skin.ps1',
     'scripts\verify-dream-skin.ps1'
   )
   foreach ($relative in $required) {

@@ -8,11 +8,14 @@ const here = path.dirname(fileURLToPath(import.meta.url));
 const windowsRoot = path.resolve(here, "..");
 const template = await fs.readFile(path.join(windowsRoot, "assets", "renderer-inject.js"), "utf8");
 const css = await fs.readFile(path.join(windowsRoot, "assets", "dream-skin.css"), "utf8");
+const versionManifest = JSON.parse(await fs.readFile(path.join(windowsRoot, "assets", "version.json"), "utf8"));
+const skinVersion = versionManifest.version;
 const buildPayload = (config = {}, wallpaperPresets = []) => template
   .replace("__DREAM_CSS_JSON__", JSON.stringify(".fixture { color: blue; }"))
   .replace("__DREAM_ART_JSON__", JSON.stringify("data:image/png;base64,AA=="))
   .replace("__DREAM_THEME_JSON__", JSON.stringify(config))
-  .replace("__DREAM_WALLPAPER_PRESETS_JSON__", JSON.stringify(wallpaperPresets));
+  .replace("__DREAM_WALLPAPER_PRESETS_JSON__", JSON.stringify(wallpaperPresets))
+  .replace("__DREAM_SKIN_VERSION_JSON__", JSON.stringify(skinVersion));
 const payload = buildPayload();
 
 assert.doesNotMatch(
@@ -267,7 +270,7 @@ function createFixture({
 const main = createFixture({ shellPresent: true });
 const mainResult = vm.runInNewContext(payload, main.context);
 assert.equal(mainResult.installed, true);
-assert.equal(mainResult.version, "1.4.0");
+assert.equal(mainResult.version, skinVersion);
 assert.equal(main.rootClasses.has("codex-dream-skin"), true);
 assert.equal(main.rootStyles.get("--dream-art"), 'url("blob:fixture-1")');
 assert.equal(main.nodes.has("codex-dream-skin-style"), true);
@@ -313,7 +316,7 @@ const presetCatalog = [
 ];
 const presetFixture = createFixture({ shellPresent: true });
 const presetResult = vm.runInNewContext(buildPayload({}, presetCatalog), presetFixture.context);
-assert.equal(presetResult.version, "1.4.0");
+assert.equal(presetResult.version, skinVersion);
 assert.equal(presetFixture.context.window.__CODEX_DREAM_SKIN_STATE__.presetArtUrls.length, 4);
 assert.equal(presetFixture.context.window.__CODEX_DREAM_SKIN_STATE__.cleanup(), true);
 assert.deepEqual(presetFixture.revokedUrls, [
@@ -445,7 +448,7 @@ const userCustomized = createFixture({
   },
 });
 const customizedResult = vm.runInNewContext(payload, userCustomized.context);
-assert.equal(customizedResult.version, "1.4.0");
+assert.equal(customizedResult.version, skinVersion);
 assert.equal(userCustomized.rootClasses.has("dream-motion-disabled"), true);
 assert.equal(userCustomized.rootClasses.has("dream-reading-disabled"), true);
 assert.equal(userCustomized.rootStyles.get("--dream-user-control-alpha"), "58%");

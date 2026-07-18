@@ -155,7 +155,7 @@ Platform scripts are ready — different plumbing, same goal: theme Codex.
 | Platform | Dir | Entry |
 |------|------|------|
 | Apple Silicon / Intel Mac | [`macos/`](./macos/) | Double-click `Install Codex Dream Skin.command` |
-| Windows | [`windows/`](./windows/) | `scripts/install-dream-skin.ps1` → `start-dream-skin.ps1` |
+| Windows | [`windows/`](./windows/) | Download and run `Setup.exe` from Releases |
 
 More detail:
 

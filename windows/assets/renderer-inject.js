@@ -1,4 +1,4 @@
-((cssText, artDataUrl, rawConfig, rawWallpaperPresets) => {
+((cssText, artDataUrl, rawConfig, rawWallpaperPresets, skinVersion) => {
   const STATE_KEY = "__CODEX_DREAM_SKIN_STATE__";
   const STYLE_ID = "codex-dream-skin-style";
   const CHROME_ID = "codex-dream-skin-chrome";
@@ -1050,7 +1050,7 @@
     config,
     userSettings,
     installToken,
-    version: "1.4.0",
+    version: skinVersion,
   };
   ensure();
   updateWallpaperStatus();
@@ -1063,10 +1063,11 @@
     wallpaperState.error = true;
     updateWallpaperStatus();
   });
-  return { installed: true, version: "1.4.0", adaptive: true, controls: true };
+  return { installed: true, version: skinVersion, adaptive: true, controls: true };
 })(
   __DREAM_CSS_JSON__,
   __DREAM_ART_JSON__,
   __DREAM_THEME_JSON__,
   __DREAM_WALLPAPER_PRESETS_JSON__,
+  __DREAM_SKIN_VERSION_JSON__,
 )

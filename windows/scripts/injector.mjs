@@ -7,7 +7,11 @@ import { readImageMetadata } from "./image-metadata.mjs";
 const scriptPath = fileURLToPath(import.meta.url);
 const here = path.dirname(scriptPath);
 const root = path.resolve(here, "..");
-const SKIN_VERSION = "1.4.0";
+const versionManifest = JSON.parse(await fs.readFile(path.join(root, "assets", "version.json"), "utf8"));
+if (!/^\d+\.\d+\.\d+$/.test(versionManifest?.version ?? "")) {
+  throw new Error("Dream Skin version manifest is invalid");
+}
+const SKIN_VERSION = versionManifest.version;
 const MAX_ART_BYTES = 16 * 1024 * 1024;
 const MAX_BUNDLED_WALLPAPER_BYTES = 4 * 1024 * 1024;
 const STRONG_THEME_AUDIT_MS = 30000;
@@ -434,7 +438,8 @@ async function loadPayload(themeDir = path.join(root, "assets"), candidateTheme 
     .replace("__DREAM_CSS_JSON__", JSON.stringify(css))
     .replace("__DREAM_ART_JSON__", JSON.stringify(artDataUrl))
     .replace("__DREAM_THEME_JSON__", JSON.stringify(loadedTheme.theme))
-    .replace("__DREAM_WALLPAPER_PRESETS_JSON__", JSON.stringify(wallpaperPresets));
+    .replace("__DREAM_WALLPAPER_PRESETS_JSON__", JSON.stringify(wallpaperPresets))
+    .replace("__DREAM_SKIN_VERSION_JSON__", JSON.stringify(SKIN_VERSION));
   const { imageBytes: _imageBytes, ...themeState } = loadedTheme;
   return { ...themeState, payload, wallpaperPresetCount: wallpaperPresets.length };
 }

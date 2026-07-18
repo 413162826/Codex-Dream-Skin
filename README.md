@@ -143,7 +143,7 @@ powershell -ExecutionPolicy Bypass -File .\windows\scripts\start-dream-skin.ps1
 | 平台 | 目录 | 入口 |
 |------|------|------|
 | Apple Silicon / Intel Mac | [`macos/`](./macos/) | 双击 `Install Codex Dream Skin.command` |
-| Windows | [`windows/`](./windows/) | `scripts/install-dream-skin.ps1` → `start-dream-skin.ps1` |
+| Windows | [`windows/`](./windows/) | 从 Releases 下载并双击 `Setup.exe` |
 
 更细的说明：
 

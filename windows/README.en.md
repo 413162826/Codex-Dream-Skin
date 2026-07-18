@@ -12,17 +12,19 @@ Codex Dream Skin loads an external theme into the official Codex Windows desktop
 - Node.js 22 or newer, with `node.exe` available on `PATH`.
 - Windows PowerShell 5.1 or newer.
 
-Run the installer after Codex has fully exited. Normal use does not require administrator access or ownership changes under WindowsApps.
+Installation and normal use do not require administrator access or ownership changes under WindowsApps.
 
 ## Install
 
-Open PowerShell in the repository's `windows` directory and run:
+Download `Codex-Dream-Skin-Windows-*-Setup.exe` from [Releases](https://github.com/413162826/Codex-Dream-Skin/releases/latest) and run it. Setup closes the Dream Skin tray and Codex, validates the official Codex Store package and Node.js, deploys the managed runtime, and registers launch, update, and uninstall entries in the Start menu.
+
+Source installation is intended only for development and troubleshooting. Open PowerShell in the repository's `windows` directory and run:
 
 ```powershell
 powershell.exe -NoProfile -ExecutionPolicy Bypass -File .\scripts\install-dream-skin.ps1
 ```
 
-The installer validates the official Codex Store package and Node.js, saves a recoverable appearance baseline, and initializes the local theme store. By default it also creates these shortcuts:
+The source installer saves a recoverable appearance baseline and initializes the local theme store. By default it also creates these shortcuts:
 
 - `Codex Dream Skin`: launch or reapply the skin.
 - `Codex Dream Skin - Tray`: open the system tray theme controls.
@@ -38,7 +40,11 @@ powershell.exe -NoProfile -ExecutionPolicy Bypass -File .\scripts\install-dream-
 
 ## Update
 
-Exit the Dream Skin tray and close Codex, update the checkout (`git pull`, or download the latest source again), then rerun the install command above. The installer atomically replaces the managed runtime and rebuilds its shortcuts without deleting the active theme, saved themes, or imported images.
+The EXE installation checks for the latest stable release at most once per day when the tray starts. You can also choose **Check for Updates** from the tray or Start menu. The updater reads a fixed manifest asset from the latest GitHub Release instead of consuming the anonymous REST API quota. An update downloads only after user confirmation and starts only when its version, repository, URL, and manifest SHA-256 all match. Updating atomically replaces the managed runtime without deleting the active theme, saved themes, or imported images.
+
+Users who installed the `windows-v1.3.3` or `windows-v1.4.0` ZIP must download and run the new `Setup.exe` once. Future releases can then use the built-in updater.
+
+Source installations can still exit the tray and Codex, run `git pull`, and rerun the install command.
 
 ## Launch and verify
 
@@ -86,7 +92,11 @@ The compact **Appearance** button in the lower-right corner of Codex provides li
 
 Appearance values persist in the current Codex profile. The selected preset or custom wallpaper is stored locally under the active theme ID and survives renderer reloads. **Restore current theme** removes that override and returns to the wallpaper selected by the tray or theme store.
 
-## Restore and remove shortcuts
+## Restore and uninstall
+
+EXE installations can be removed from Windows **Installed apps** or the Start menu. The uninstaller restores the stock Codex appearance, stops the Dream Skin runtime, and removes program files. It asks whether to preserve personal theme data or also delete the active theme, saved themes, and imported images.
+
+Source installations can use the restore command below.
 
 Restore the stock appearance. If Codex is running, confirm its closure and relaunch:
 
@@ -112,6 +122,8 @@ powershell.exe -NoProfile -ExecutionPolicy Bypass -File .\scripts\restore-dream-
 | Active theme | `%LOCALAPPDATA%\CodexDreamSkin\active-theme` |
 | Saved themes | `%LOCALAPPDATA%\CodexDreamSkin\themes` |
 | Imported image archive | `%LOCALAPPDATA%\CodexDreamSkin\images` |
+| Update download cache | `%LOCALAPPDATA%\CodexDreamSkin\updates` |
+| EXE installation files | `%LOCALAPPDATA%\Programs\CodexDreamSkin` |
 | Session state | `%LOCALAPPDATA%\CodexDreamSkin\state.json` |
 | Injector log | `%LOCALAPPDATA%\CodexDreamSkin\injector.log` |
 | Injector error log | `%LOCALAPPDATA%\CodexDreamSkin\injector-error.log` |

@@ -38,7 +38,8 @@ try {
   if ($runtimeSourceFiles.Count -ne $runtimeEngineFiles.Count -or
     -not (Test-DreamSkinPathWithin -Path $engine.Start -Root $runtimeStateRoot) -or
     -not (Test-DreamSkinPathWithin -Path $engine.Restore -Root $runtimeStateRoot) -or
-    -not (Test-DreamSkinPathWithin -Path $engine.Tray -Root $runtimeStateRoot)) {
+    -not (Test-DreamSkinPathWithin -Path $engine.Tray -Root $runtimeStateRoot) -or
+    -not (Test-DreamSkinPathWithin -Path $engine.Update -Root $runtimeStateRoot)) {
     throw 'Installed runtime paths are incomplete or still point outside the managed state root.'
   }
   foreach ($sourceFile in $runtimeSourceFiles) {
@@ -125,6 +126,21 @@ try {
   }
   if (-not $nestedStateRejected -or (Test-Path -LiteralPath $nestedStateRoot)) {
     throw 'Runtime install allowed its state root to recurse into the copied source tree.'
+  }
+
+  $purgeStateRoot = Join-Path $temporaryRoot 'purge-state'
+  New-Item -ItemType Directory -Path (Join-Path $purgeStateRoot 'themes') -Force | Out-Null
+  [System.IO.File]::WriteAllText((Join-Path $purgeStateRoot 'themes\saved.txt'), 'saved theme')
+  Remove-DreamSkinStateTree -StateRoot $purgeStateRoot -ExpectedStateRoot $purgeStateRoot
+  if (Test-Path -LiteralPath $purgeStateRoot) {
+    throw 'Validated uninstall purge left its managed state tree behind.'
+  }
+  $unexpectedPurgeRejected = $false
+  try {
+    Remove-DreamSkinStateTree -StateRoot $runtimeStateRoot -ExpectedStateRoot $purgeStateRoot
+  } catch { $unexpectedPurgeRejected = $true }
+  if (-not $unexpectedPurgeRejected) {
+    throw 'Uninstall purge accepted a state path outside its exact expected root.'
   }
 
   $installSource = Read-DreamSkinUtf8File -Path (Join-Path $Root 'scripts\install-dream-skin.ps1')
@@ -834,6 +850,7 @@ try {
   }
 
   $node = Get-DreamSkinNodeRuntime
+  & (Join-Path $PSScriptRoot 'update-core.test.ps1')
   $stderrProbe = Invoke-DreamSkinNative -FilePath $node.Path -ArgumentList @(
     '-e', "process.stderr.write('dream-skin-stderr-probe\n'); process.exit(7)")
   if ($stderrProbe.ExitCode -ne 7 -or ($stderrProbe.Output -join "`n") -notmatch 'dream-skin-stderr-probe') {

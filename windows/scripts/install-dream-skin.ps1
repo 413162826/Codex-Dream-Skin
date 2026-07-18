@@ -1,7 +1,8 @@
 [CmdletBinding()]
 param(
   [int]$Port = 9335,
-  [switch]$NoShortcuts
+  [switch]$NoShortcuts,
+  [switch]$CloseRunning
 )
 
 $ErrorActionPreference = 'Stop'
@@ -18,25 +19,37 @@ try {
   if ($registeredInstalls.Count -eq 0) {
     throw 'The official OpenAI.Codex Store package is not installed or its identity cannot be validated.'
   }
-  foreach ($registeredCodex in $registeredInstalls) {
-    if ((Get-DreamSkinCodexProcesses -Codex $registeredCodex).Count -gt 0) {
-      throw 'Close Codex before installing Dream Skin so config.toml cannot change during the transaction.'
-    }
-  }
-
   $StateRoot = Join-Path $env:LOCALAPPDATA 'CodexDreamSkin'
   $themePaths = Get-DreamSkinThemePaths -StateRoot $StateRoot
   Ensure-DreamSkinManagedDirectory -Path $themePaths.Root -Root $themePaths.Root
   $StatePath = Join-Path $StateRoot 'state.json'
   $existingState = Read-DreamSkinState -Path $StatePath
+
+  if ($CloseRunning) {
+    Stop-DreamSkinTrayProcesses
+    foreach ($registeredCodex in $registeredInstalls) {
+      if ((Get-DreamSkinCodexProcesses -Codex $registeredCodex).Count -gt 0) {
+        Stop-DreamSkinCodex -Codex $registeredCodex -AllowForce
+      }
+    }
+    $null = Stop-DreamSkinRecordedInjector -State $existingState
+    Remove-Item -LiteralPath $StatePath -Force -ErrorAction SilentlyContinue
+  } else {
+    foreach ($registeredCodex in $registeredInstalls) {
+      if ((Get-DreamSkinCodexProcesses -Codex $registeredCodex).Count -gt 0) {
+        throw 'Close Codex before installing Dream Skin so config.toml cannot change during the transaction.'
+      }
+    }
+    if (Test-DreamSkinTrayActive) {
+      throw 'Exit the Codex Dream Skin tray before reinstalling so every shortcut can move to the new runtime safely.'
+    }
+  }
+
   $savedPathCandidate = Get-DreamSkinCodexStatePathCandidate -State $existingState
   $savedCodex = Resolve-DreamSkinCodexInstallFromState -State $existingState -RegisteredInstalls $registeredInstalls
   if ($null -ne $savedPathCandidate -and $null -eq $savedCodex -and
     (Get-DreamSkinCodexProcesses -Codex $savedPathCandidate).Count -gt 0) {
     throw 'The saved Codex path is still running but no longer matches a registered Store package. Close it manually before installing.'
-  }
-  if (Test-DreamSkinTrayActive) {
-    throw 'Exit the Codex Dream Skin tray before reinstalling so every shortcut can move to the new runtime safely.'
   }
   $engine = Install-DreamSkinRuntimeEngine -SkillRoot $SkillRoot -StateRoot $StateRoot
   $null = Initialize-DreamSkinThemeStore -SkillRoot $engine.Root -StateRoot $StateRoot

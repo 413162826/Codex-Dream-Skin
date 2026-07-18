@@ -15,6 +15,7 @@ $paths = Initialize-DreamSkinThemeStore -SkillRoot $SkillRoot -StateRoot $StateR
 $powershell = (Get-Command powershell.exe -ErrorAction Stop).Source
 $startScript = Join-Path $PSScriptRoot 'start-dream-skin.ps1'
 $restoreScript = Join-Path $PSScriptRoot 'restore-dream-skin.ps1'
+$updateScript = Join-Path $PSScriptRoot 'update-dream-skin.ps1'
 
 $sid = [System.Security.Principal.WindowsIdentity]::GetCurrent().User.Value
 $mutex = [System.Threading.Mutex]::new($false, "Local\CodexDreamSkin.$sid.Tray")
@@ -137,6 +138,9 @@ try {
       Start-Process -FilePath explorer.exe -ArgumentList @($paths.Images) | Out-Null
     }
     [void]$menu.Items.Add([System.Windows.Forms.ToolStripSeparator]::new())
+    $null = Add-DreamSkinTrayItem -Items $menu.Items -Text '检查更新' -Action {
+      Start-DreamSkinPowerShell -Script $updateScript
+    }
     $null = Add-DreamSkinTrayItem -Items $menu.Items -Text '完全恢复 Codex' -Action {
       Start-DreamSkinPowerShell -Script $restoreScript -Arguments @(
         '-Port', "$Port", '-RestoreBaseTheme', '-PromptRestart'
@@ -151,6 +155,7 @@ try {
   }
 
   $menu.add_Opening({ Rebuild-DreamSkinTrayMenu })
+  Start-DreamSkinPowerShell -Script $updateScript -Arguments @('-Automatic')
   $notify.add_DoubleClick({
     try {
       Set-DreamSkinPaused -Paused $false -StateRoot $StateRoot | Out-Null
