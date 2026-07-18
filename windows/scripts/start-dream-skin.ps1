@@ -4,7 +4,8 @@ param(
   [switch]$RestartExisting,
   [switch]$PromptRestart,
   [string]$ProfilePath,
-  [switch]$ForegroundInjector
+  [switch]$ForegroundInjector,
+  [string]$StateRoot
 )
 
 $ErrorActionPreference = 'Stop'
@@ -20,7 +21,7 @@ try {
   $node = Get-DreamSkinNodeRuntime
   $currentCodex = Get-DreamSkinCodexInstall
   $codex = $currentCodex
-  $StateRoot = Join-Path $env:LOCALAPPDATA 'CodexDreamSkin'
+  $StateRoot = Get-DreamSkinStateRoot -StateRoot $StateRoot
   $themePaths = Get-DreamSkinThemePaths -StateRoot $StateRoot
   Ensure-DreamSkinManagedDirectory -Path $themePaths.Root -Root $themePaths.Root
   $StatePath = Join-Path $StateRoot 'state.json'

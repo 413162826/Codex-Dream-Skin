@@ -1,5 +1,5 @@
 ﻿[CmdletBinding()]
-param([int]$Port = 9335)
+param([int]$Port = 9335, [string]$StateRoot)
 
 $ErrorActionPreference = 'Stop'
 Add-Type -AssemblyName System.Windows.Forms
@@ -10,7 +10,7 @@ Add-Type -AssemblyName Microsoft.VisualBasic
 
 Assert-DreamSkinPort -Port $Port
 $SkillRoot = Split-Path -Parent $PSScriptRoot
-$StateRoot = Join-Path $env:LOCALAPPDATA 'CodexDreamSkin'
+$StateRoot = Get-DreamSkinStateRoot -StateRoot $StateRoot
 $paths = Initialize-DreamSkinThemeStore -SkillRoot $SkillRoot -StateRoot $StateRoot
 $powershell = (Get-Command powershell.exe -ErrorAction Stop).Source
 $startScript = Join-Path $PSScriptRoot 'start-dream-skin.ps1'

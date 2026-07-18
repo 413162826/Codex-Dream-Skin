@@ -1,5 +1,8 @@
 [CmdletBinding()]
-param([Parameter(Mandatory = $true)][string]$InstallerPath)
+param(
+  [Parameter(Mandatory = $true)][string]$InstallerPath,
+  [string]$TestBaseDirectory = ([System.IO.Path]::GetTempPath())
+)
 
 $ErrorActionPreference = 'Stop'
 $installer = [System.IO.Path]::GetFullPath($InstallerPath)
@@ -7,11 +10,15 @@ if (-not (Test-Path -LiteralPath $installer -PathType Leaf)) {
   throw "Installer not found: $installer"
 }
 $versionInfo = (Get-Item -LiteralPath $installer).VersionInfo
-if ($versionInfo.ProductVersion.Trim() -ne '1.4.1') {
+if ($versionInfo.ProductVersion.Trim() -ne '1.4.2') {
   throw "Installer product version is unexpected: $($versionInfo.ProductVersion)"
 }
 
-$testRoot = Join-Path ([System.IO.Path]::GetTempPath()) "codex-dream-skin-package-test-$PID-$([guid]::NewGuid().ToString('N'))"
+$testBase = [System.IO.Path]::GetFullPath($TestBaseDirectory).TrimEnd('\')
+if (-not (Test-Path -LiteralPath $testBase -PathType Container)) {
+  throw "Package-test base directory not found: $testBase"
+}
+$testRoot = Join-Path $testBase "codex-dream-skin-package-test-$PID-$([guid]::NewGuid().ToString('N'))"
 $installRoot = Join-Path $testRoot 'app'
 $installLog = Join-Path $testRoot 'install.log'
 $uninstallLog = Join-Path $testRoot 'uninstall.log'
@@ -24,6 +31,7 @@ try {
   if ($setup.ExitCode -ne 0) { throw "Installer package test failed: exit $($setup.ExitCode)" }
   foreach ($required in @(
     'package-test.marker',
+    'package-run.marker',
     'payload\assets\version.json',
     'payload\scripts\install-dream-skin.ps1',
     'payload\scripts\update-dream-skin.ps1',
@@ -53,8 +61,8 @@ try {
 } finally {
   if (Test-Path -LiteralPath $testRoot) {
     $resolved = [System.IO.Path]::GetFullPath($testRoot)
-    $tempPrefix = [System.IO.Path]::GetFullPath([System.IO.Path]::GetTempPath()).TrimEnd('\') + '\'
-    if (-not $resolved.StartsWith($tempPrefix, [System.StringComparison]::OrdinalIgnoreCase)) {
+    $testPrefix = $testBase + '\'
+    if (-not $resolved.StartsWith($testPrefix, [System.StringComparison]::OrdinalIgnoreCase)) {
       throw "Refusing to remove unexpected package-test path: $resolved"
     }
     Remove-Item -LiteralPath $resolved -Recurse -Force -ErrorAction SilentlyContinue

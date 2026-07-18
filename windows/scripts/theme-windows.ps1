@@ -90,7 +90,7 @@ function Assert-DreamSkinImageFile {
 }
 
 function Get-DreamSkinThemePaths {
-  param([string]$StateRoot = (Join-Path $env:LOCALAPPDATA 'CodexDreamSkin'))
+  param([string]$StateRoot = (Get-DreamSkinStateRoot))
   $fullRoot = [System.IO.Path]::GetFullPath($StateRoot)
   return [pscustomobject]@{
     Root = $fullRoot
@@ -186,7 +186,7 @@ function Write-DreamSkinTheme {
 function Initialize-DreamSkinThemeStore {
   param(
     [Parameter(Mandatory = $true)][string]$SkillRoot,
-    [string]$StateRoot = (Join-Path $env:LOCALAPPDATA 'CodexDreamSkin')
+    [string]$StateRoot = (Get-DreamSkinStateRoot)
   )
   $paths = Get-DreamSkinThemePaths -StateRoot $StateRoot
   foreach ($directory in @($paths.Root, $paths.Active, $paths.Saved, $paths.Images)) {
@@ -249,7 +249,7 @@ function Set-DreamSkinActiveTheme {
     [Parameter(Mandatory = $true)][string]$ImagePath,
     [AllowNull()][object]$Theme,
     [string]$Name,
-    [string]$StateRoot = (Join-Path $env:LOCALAPPDATA 'CodexDreamSkin')
+    [string]$StateRoot = (Get-DreamSkinStateRoot)
   )
   $paths = Get-DreamSkinThemePaths -StateRoot $StateRoot
   Ensure-DreamSkinManagedDirectory -Path $paths.Root -Root $paths.Root
@@ -312,7 +312,7 @@ function Set-DreamSkinActiveTheme {
 function Save-DreamSkinCurrentTheme {
   param(
     [Parameter(Mandatory = $true)][string]$Name,
-    [string]$StateRoot = (Join-Path $env:LOCALAPPDATA 'CodexDreamSkin')
+    [string]$StateRoot = (Get-DreamSkinStateRoot)
   )
   $trimmed = $Name.Trim()
   if (-not $trimmed -or $trimmed.Length -gt 80 -or $trimmed -match '[\u0000-\u001f]') {
@@ -342,7 +342,7 @@ function Save-DreamSkinCurrentTheme {
 
 function Get-DreamSkinSavedThemes {
   param(
-    [string]$StateRoot = (Join-Path $env:LOCALAPPDATA 'CodexDreamSkin'),
+    [string]$StateRoot = (Get-DreamSkinStateRoot),
     [switch]$SkipImageMetadata
   )
   $paths = Get-DreamSkinThemePaths -StateRoot $StateRoot
@@ -366,7 +366,7 @@ function Get-DreamSkinSavedThemes {
 function Use-DreamSkinSavedTheme {
   param(
     [Parameter(Mandatory = $true)][string]$ThemeDirectory,
-    [string]$StateRoot = (Join-Path $env:LOCALAPPDATA 'CodexDreamSkin')
+    [string]$StateRoot = (Get-DreamSkinStateRoot)
   )
   $paths = Get-DreamSkinThemePaths -StateRoot $StateRoot
   Ensure-DreamSkinManagedDirectory -Path $paths.Root -Root $paths.Root
@@ -383,7 +383,7 @@ function Use-DreamSkinSavedTheme {
 function Set-DreamSkinPaused {
   param(
     [Parameter(Mandatory = $true)][bool]$Paused,
-    [string]$StateRoot = (Join-Path $env:LOCALAPPDATA 'CodexDreamSkin')
+    [string]$StateRoot = (Get-DreamSkinStateRoot)
   )
   $paths = Get-DreamSkinThemePaths -StateRoot $StateRoot
   Ensure-DreamSkinManagedDirectory -Path $paths.Root -Root $paths.Root
@@ -398,6 +398,6 @@ function Set-DreamSkinPaused {
 }
 
 function Test-DreamSkinPaused {
-  param([string]$StateRoot = (Join-Path $env:LOCALAPPDATA 'CodexDreamSkin'))
+  param([string]$StateRoot = (Get-DreamSkinStateRoot))
   return (Test-Path -LiteralPath (Get-DreamSkinThemePaths -StateRoot $StateRoot).PauseFile -PathType Leaf)
 }

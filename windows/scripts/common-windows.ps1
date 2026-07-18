@@ -48,8 +48,30 @@ function Test-DreamSkinPathWithin {
   }
 }
 
+function Get-DreamSkinStateRoot {
+  param(
+    [string]$StateRoot,
+    [string]$ScriptRoot = $PSScriptRoot,
+    [string]$LocalApplicationData = $env:LOCALAPPDATA
+  )
+  if (-not [string]::IsNullOrWhiteSpace($StateRoot)) {
+    return [System.IO.Path]::GetFullPath($StateRoot)
+  }
+  $fullScriptRoot = [System.IO.Path]::GetFullPath($ScriptRoot)
+  $engineRoot = Split-Path -Parent $fullScriptRoot
+  if ((Split-Path -Leaf $fullScriptRoot) -ieq 'scripts' -and
+    (Split-Path -Leaf $engineRoot) -ieq 'engine' -and
+    (Test-Path -LiteralPath (Join-Path $engineRoot 'assets\version.json') -PathType Leaf)) {
+    return [System.IO.Path]::GetFullPath((Split-Path -Parent $engineRoot))
+  }
+  if ([string]::IsNullOrWhiteSpace($LocalApplicationData)) {
+    throw 'The current user LocalAppData directory is unavailable.'
+  }
+  return [System.IO.Path]::GetFullPath((Join-Path $LocalApplicationData 'CodexDreamSkin'))
+}
+
 function Get-DreamSkinRuntimeEnginePaths {
-  param([string]$StateRoot = (Join-Path $env:LOCALAPPDATA 'CodexDreamSkin'))
+  param([string]$StateRoot = (Get-DreamSkinStateRoot))
   $root = Join-Path ([System.IO.Path]::GetFullPath($StateRoot)) 'engine'
   $scripts = Join-Path $root 'scripts'
   return [pscustomobject]@{
@@ -83,12 +105,22 @@ function Test-DreamSkinTrayActive {
 }
 
 function Stop-DreamSkinTrayProcesses {
-  $trayScript = [System.IO.Path]::GetFullPath((Join-Path $PSScriptRoot 'tray-dream-skin.ps1'))
+  param([string]$StateRoot)
+  $trayScripts = @(
+    [System.IO.Path]::GetFullPath((Join-Path $PSScriptRoot 'tray-dream-skin.ps1'))
+  )
+  if (-not [string]::IsNullOrWhiteSpace($StateRoot)) {
+    $trayScripts += (Get-DreamSkinRuntimeEnginePaths -StateRoot $StateRoot).Tray
+  }
+  $trayScripts = @($trayScripts | Select-Object -Unique)
   $processes = @(Get-CimInstance Win32_Process -Filter "Name = 'powershell.exe' OR Name = 'pwsh.exe'" `
     -ErrorAction Stop)
   foreach ($process in $processes) {
     if ($process.ProcessId -eq $PID -or -not $process.CommandLine) { continue }
-    if ($process.CommandLine.IndexOf($trayScript, [System.StringComparison]::OrdinalIgnoreCase) -lt 0) {
+    $matchesTray = @($trayScripts | Where-Object {
+      $process.CommandLine.IndexOf($_, [System.StringComparison]::OrdinalIgnoreCase) -ge 0
+    }).Count -gt 0
+    if (-not $matchesTray) {
       continue
     }
     Stop-Process -Id $process.ProcessId -Force -ErrorAction Stop
@@ -134,7 +166,7 @@ function Remove-DreamSkinRuntimeTree {
 function Remove-DreamSkinStateTree {
   param(
     [Parameter(Mandatory = $true)][string]$StateRoot,
-    [string]$ExpectedStateRoot = (Join-Path $env:LOCALAPPDATA 'CodexDreamSkin')
+    [string]$ExpectedStateRoot = (Get-DreamSkinStateRoot)
   )
   $expected = [System.IO.Path]::GetFullPath($ExpectedStateRoot)
   $actual = [System.IO.Path]::GetFullPath($StateRoot)

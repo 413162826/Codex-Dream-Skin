@@ -2,7 +2,8 @@
 param(
   [int]$Port = 9335,
   [switch]$NoShortcuts,
-  [switch]$CloseRunning
+  [switch]$CloseRunning,
+  [string]$StateRoot
 )
 
 $ErrorActionPreference = 'Stop'
@@ -19,14 +20,14 @@ try {
   if ($registeredInstalls.Count -eq 0) {
     throw 'The official OpenAI.Codex Store package is not installed or its identity cannot be validated.'
   }
-  $StateRoot = Join-Path $env:LOCALAPPDATA 'CodexDreamSkin'
+  $StateRoot = Get-DreamSkinStateRoot -StateRoot $StateRoot
   $themePaths = Get-DreamSkinThemePaths -StateRoot $StateRoot
   Ensure-DreamSkinManagedDirectory -Path $themePaths.Root -Root $themePaths.Root
   $StatePath = Join-Path $StateRoot 'state.json'
   $existingState = Read-DreamSkinState -Path $StatePath
 
   if ($CloseRunning) {
-    Stop-DreamSkinTrayProcesses
+    Stop-DreamSkinTrayProcesses -StateRoot $StateRoot
     foreach ($registeredCodex in $registeredInstalls) {
       if ((Get-DreamSkinCodexProcesses -Codex $registeredCodex).Count -gt 0) {
         Stop-DreamSkinCodex -Codex $registeredCodex -AllowForce

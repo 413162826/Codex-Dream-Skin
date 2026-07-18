@@ -6,7 +6,8 @@ param(
   [switch]$RecoverConfigBackup,
   [switch]$PromptRestart,
   [switch]$ForceRestart,
-  [switch]$NoRelaunch
+  [switch]$NoRelaunch,
+  [string]$StateRoot
 )
 
 $ErrorActionPreference = 'Stop'
@@ -21,7 +22,7 @@ try {
   }
   Assert-DreamSkinPort -Port $Port
 
-  $StateRoot = Join-Path $env:LOCALAPPDATA 'CodexDreamSkin'
+  $StateRoot = Get-DreamSkinStateRoot -StateRoot $StateRoot
   $themePaths = Get-DreamSkinThemePaths -StateRoot $StateRoot
   Ensure-DreamSkinManagedDirectory -Path $themePaths.Root -Root $themePaths.Root
   $StatePath = Join-Path $StateRoot 'state.json'
@@ -101,7 +102,7 @@ try {
 
   $restoreError = $null
   try {
-    Stop-DreamSkinTrayProcesses
+    Stop-DreamSkinTrayProcesses -StateRoot $StateRoot
     if ($shouldCloseCodex) {
       Stop-DreamSkinCodex -Codex $codex -AllowForce:$forceAuthorized
       if ($portOwnedByCodex -and -not (Wait-DreamSkinPortAvailable -Port $Port -TimeoutSeconds 5)) {

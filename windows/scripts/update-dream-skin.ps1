@@ -1,7 +1,8 @@
 [CmdletBinding()]
 param(
   [switch]$Automatic,
-  [switch]$CheckOnly
+  [switch]$CheckOnly,
+  [string]$StateRoot
 )
 
 $ErrorActionPreference = 'Stop'
@@ -46,7 +47,7 @@ try {
   try { $acquired = $mutex.WaitOne(0) } catch [System.Threading.AbandonedMutexException] { $acquired = $true }
   if (-not $acquired) { exit 0 }
 
-  $stateRoot = Join-Path $env:LOCALAPPDATA 'CodexDreamSkin'
+  $stateRoot = Get-DreamSkinStateRoot -StateRoot $StateRoot
   Ensure-DreamSkinManagedDirectory -Path $stateRoot -Root $stateRoot
   $updateStatePath = Join-Path $stateRoot 'update-state.json'
   if ($Automatic -and (Test-Path -LiteralPath $updateStatePath -PathType Leaf)) {

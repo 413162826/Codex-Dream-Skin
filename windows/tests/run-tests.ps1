@@ -26,6 +26,39 @@ try {
   }
 
   $engine = Install-DreamSkinRuntimeEngine -SkillRoot $runtimeSourceRoot -StateRoot $runtimeStateRoot
+  $mismatchedLocalAppData = Join-Path $temporaryRoot 'different-local-app-data'
+  $managedStateRoot = Get-DreamSkinStateRoot -ScriptRoot (Join-Path $engine.Root 'scripts') `
+    -LocalApplicationData $mismatchedLocalAppData
+  $managedCommon = (Join-Path $engine.Scripts 'common-windows.ps1').Replace("'", "''")
+  $managedProbeCommand = "`$ProgressPreference='SilentlyContinue'; . '$managedCommon'; Get-DreamSkinStateRoot"
+  $managedProbeEncoded = [Convert]::ToBase64String([Text.Encoding]::Unicode.GetBytes($managedProbeCommand))
+  $managedProbeStateRoot = (& powershell.exe -NoLogo -NoProfile -EncodedCommand $managedProbeEncoded |
+    Select-Object -Last 1)
+  if ($LASTEXITCODE -ne 0) { throw 'Installed runtime state-root probe failed.' }
+  $sourceStateRoot = Get-DreamSkinStateRoot -ScriptRoot (Join-Path $Root 'scripts') `
+    -LocalApplicationData $mismatchedLocalAppData
+  $explicitStateRoot = Join-Path $temporaryRoot 'explicit-state-root'
+  $resolvedExplicitStateRoot = Get-DreamSkinStateRoot -StateRoot $explicitStateRoot `
+    -ScriptRoot (Join-Path $Root 'scripts') -LocalApplicationData $mismatchedLocalAppData
+  if (-not (Test-DreamSkinPathEqual -Left $managedStateRoot -Right $runtimeStateRoot) -or
+    -not (Test-DreamSkinPathEqual -Left $managedProbeStateRoot -Right $runtimeStateRoot) -or
+    -not (Test-DreamSkinPathEqual -Left $sourceStateRoot `
+      -Right (Join-Path $mismatchedLocalAppData 'CodexDreamSkin')) -or
+    -not (Test-DreamSkinPathEqual -Left $resolvedExplicitStateRoot -Right $explicitStateRoot)) {
+    throw 'Managed runtime did not keep its own state root when LocalAppData resolved to a different path.'
+  }
+  $installerSource = Read-DreamSkinUtf8File -Path (Join-Path $Root 'installer\CodexDreamSkin.iss')
+  if ($installerSource -notmatch '#define MyStateRoot "\{localappdata\}\\CodexDreamSkin"' -or
+    $installerSource -notmatch '-StateRoot.*ExpandConstant\(''\{#MyStateRoot\}''\)' -or
+    $installerSource -match 'WorkingDir: "\{#MyStateRoot\}\\engine"') {
+    throw 'Windows Setup does not bind install, uninstall, and launch operations to one state-root identity.'
+  }
+  $installSource = Read-DreamSkinUtf8File -Path (Join-Path $Root 'scripts\install-dream-skin.ps1')
+  $restoreSource = Read-DreamSkinUtf8File -Path (Join-Path $Root 'scripts\restore-dream-skin.ps1')
+  if (-not $installSource.Contains('Stop-DreamSkinTrayProcesses -StateRoot $StateRoot') -or
+    -not $restoreSource.Contains('Stop-DreamSkinTrayProcesses -StateRoot $StateRoot')) {
+    throw 'Install and restore do not stop the tray from the explicit managed state root.'
+  }
   $sourcePrefix = $runtimeSourceRoot.TrimEnd('\') + '\'
   $runtimeSourceFiles = @(
     Get-ChildItem -LiteralPath (Join-Path $runtimeSourceRoot 'assets'), (Join-Path $runtimeSourceRoot 'scripts') `

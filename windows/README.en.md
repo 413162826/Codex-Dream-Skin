@@ -16,7 +16,7 @@ Installation and normal use do not require administrator access or ownership cha
 
 ## Install
 
-Download `Codex-Dream-Skin-Windows-*-Setup.exe` from [Releases](https://github.com/413162826/Codex-Dream-Skin/releases/latest) and run it. Setup closes the Dream Skin tray and Codex, validates the official Codex Store package and Node.js, deploys the managed runtime, and registers launch, update, and uninstall entries in the Start menu.
+Download `Codex-Dream-Skin-Windows-*-Setup.exe` from [Releases](https://github.com/413162826/Codex-Dream-Skin/releases/latest) and run it. Program files can be installed in any directory selected by the user; themes and runtime state remain in the current user's local application-data directory. Setup closes the Dream Skin tray and Codex, validates the official Codex Store package and Node.js, deploys the managed runtime, and registers launch, update, and uninstall entries in the Start menu.
 
 Source installation is intended only for development and troubleshooting. Open PowerShell in the repository's `windows` directory and run:
 

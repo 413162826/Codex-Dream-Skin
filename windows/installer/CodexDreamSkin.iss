@@ -10,6 +10,7 @@
 #ifndef MyOutputBaseFilename
   #error MyOutputBaseFilename is required
 #endif
+#define MyStateRoot "{localappdata}\CodexDreamSkin"
 
 [Setup]
 AppId={{A5C587EA-3172-4CF1-9C3B-96C408B9E462}
@@ -62,19 +63,21 @@ Type: files; Name: "{userprograms}\Codex Dream Skin.lnk"
 Type: files; Name: "{userprograms}\Codex Dream Skin - Tray.lnk"
 
 [Icons]
-Name: "{group}\Codex Dream Skin"; Filename: "{sys}\WindowsPowerShell\v1.0\powershell.exe"; Parameters: "-NoProfile -ExecutionPolicy RemoteSigned -File ""{localappdata}\CodexDreamSkin\engine\scripts\start-dream-skin.ps1"" -PromptRestart"; WorkingDir: "{localappdata}\CodexDreamSkin\engine"; Check: not IsPackageTest
-Name: "{group}\Codex Dream Skin Tray"; Filename: "{sys}\WindowsPowerShell\v1.0\powershell.exe"; Parameters: "-NoProfile -STA -WindowStyle Hidden -ExecutionPolicy RemoteSigned -File ""{localappdata}\CodexDreamSkin\engine\scripts\tray-dream-skin.ps1"""; WorkingDir: "{localappdata}\CodexDreamSkin\engine"; Check: not IsPackageTest
-Name: "{group}\Check for Updates"; Filename: "{sys}\WindowsPowerShell\v1.0\powershell.exe"; Parameters: "-NoProfile -ExecutionPolicy RemoteSigned -File ""{localappdata}\CodexDreamSkin\engine\scripts\update-dream-skin.ps1"""; WorkingDir: "{localappdata}\CodexDreamSkin\engine"; Check: not IsPackageTest
-Name: "{group}\Restore Codex"; Filename: "{sys}\WindowsPowerShell\v1.0\powershell.exe"; Parameters: "-NoProfile -ExecutionPolicy RemoteSigned -File ""{localappdata}\CodexDreamSkin\engine\scripts\restore-dream-skin.ps1"" -RestoreBaseTheme -PromptRestart"; WorkingDir: "{localappdata}\CodexDreamSkin\engine"; Check: not IsPackageTest
+Name: "{group}\Codex Dream Skin"; Filename: "{sys}\WindowsPowerShell\v1.0\powershell.exe"; Parameters: "-NoProfile -ExecutionPolicy RemoteSigned -File ""{#MyStateRoot}\engine\scripts\start-dream-skin.ps1"" -PromptRestart"; WorkingDir: "{app}"; Check: not IsPackageTest
+Name: "{group}\Codex Dream Skin Tray"; Filename: "{sys}\WindowsPowerShell\v1.0\powershell.exe"; Parameters: "-NoProfile -STA -WindowStyle Hidden -ExecutionPolicy RemoteSigned -File ""{#MyStateRoot}\engine\scripts\tray-dream-skin.ps1"""; WorkingDir: "{app}"; Check: not IsPackageTest
+Name: "{group}\Check for Updates"; Filename: "{sys}\WindowsPowerShell\v1.0\powershell.exe"; Parameters: "-NoProfile -ExecutionPolicy RemoteSigned -File ""{#MyStateRoot}\engine\scripts\update-dream-skin.ps1"""; WorkingDir: "{app}"; Check: not IsPackageTest
+Name: "{group}\Restore Codex"; Filename: "{sys}\WindowsPowerShell\v1.0\powershell.exe"; Parameters: "-NoProfile -ExecutionPolicy RemoteSigned -File ""{#MyStateRoot}\engine\scripts\restore-dream-skin.ps1"" -RestoreBaseTheme -PromptRestart"; WorkingDir: "{app}"; Check: not IsPackageTest
 Name: "{group}\Uninstall Codex Dream Skin"; Filename: "{uninstallexe}"; Check: not IsPackageTest
-Name: "{autodesktop}\Codex Dream Skin"; Filename: "{sys}\WindowsPowerShell\v1.0\powershell.exe"; Parameters: "-NoProfile -ExecutionPolicy RemoteSigned -File ""{localappdata}\CodexDreamSkin\engine\scripts\start-dream-skin.ps1"" -PromptRestart"; WorkingDir: "{localappdata}\CodexDreamSkin\engine"; Tasks: desktopicon; Check: not IsPackageTest
+Name: "{autodesktop}\Codex Dream Skin"; Filename: "{sys}\WindowsPowerShell\v1.0\powershell.exe"; Parameters: "-NoProfile -ExecutionPolicy RemoteSigned -File ""{#MyStateRoot}\engine\scripts\start-dream-skin.ps1"" -PromptRestart"; WorkingDir: "{app}"; Tasks: desktopicon; Check: not IsPackageTest
 
 [Run]
-Filename: "{sys}\WindowsPowerShell\v1.0\powershell.exe"; Parameters: "-NoProfile -STA -WindowStyle Hidden -ExecutionPolicy RemoteSigned -File ""{localappdata}\CodexDreamSkin\engine\scripts\tray-dream-skin.ps1"""; WorkingDir: "{localappdata}\CodexDreamSkin\engine"; Flags: nowait runhidden; Check: not IsPackageTest
-Filename: "{sys}\WindowsPowerShell\v1.0\powershell.exe"; Parameters: "-NoProfile -ExecutionPolicy RemoteSigned -File ""{localappdata}\CodexDreamSkin\engine\scripts\start-dream-skin.ps1"" -PromptRestart"; WorkingDir: "{localappdata}\CodexDreamSkin\engine"; Description: "Launch Codex Dream Skin"; Flags: nowait postinstall skipifsilent unchecked; Check: not IsPackageTest
+Filename: "{sys}\WindowsPowerShell\v1.0\powershell.exe"; Parameters: "-NoProfile -STA -WindowStyle Hidden -ExecutionPolicy RemoteSigned -File ""{#MyStateRoot}\engine\scripts\tray-dream-skin.ps1"""; WorkingDir: "{app}"; Flags: nowait runhidden; Check: not IsPackageTest
+Filename: "{sys}\WindowsPowerShell\v1.0\powershell.exe"; Parameters: "-NoProfile -ExecutionPolicy RemoteSigned -File ""{#MyStateRoot}\engine\scripts\start-dream-skin.ps1"" -PromptRestart"; WorkingDir: "{app}"; Description: "Launch Codex Dream Skin"; Flags: nowait postinstall skipifsilent unchecked; Check: not IsPackageTest
+Filename: "{sys}\WindowsPowerShell\v1.0\powershell.exe"; Parameters: "-NoProfile -Command ""[IO.File]::WriteAllText('{app}\package-run.marker','package-run')"""; WorkingDir: "{app}"; Flags: runhidden; Check: IsPackageTest
 
 [UninstallDelete]
 Type: files; Name: "{app}\package-test.marker"
+Type: files; Name: "{app}\package-run.marker"
 
 [Code]
 var
@@ -105,7 +108,8 @@ begin
   end;
 
   ScriptPath := ExpandConstant('{app}\payload\scripts\install-dream-skin.ps1');
-  Parameters := '-NoProfile -ExecutionPolicy Bypass -File "' + ScriptPath + '" -NoShortcuts -CloseRunning';
+  Parameters := '-NoProfile -ExecutionPolicy Bypass -File "' + ScriptPath +
+    '" -NoShortcuts -CloseRunning -StateRoot "' + ExpandConstant('{#MyStateRoot}') + '"';
   if (not Exec(PowerShellPath(), Parameters, ExpandConstant('{app}\payload'), SW_HIDE,
       ewWaitUntilTerminated, ResultCode)) or (ResultCode <> 0) then
     RaiseException('Codex Dream Skin runtime installation failed. Exit code: ' + IntToStr(ResultCode));
@@ -138,7 +142,8 @@ begin
     exit;
 
   ScriptPath := ExpandConstant('{app}\payload\scripts\uninstall-dream-skin.ps1');
-  Parameters := '-NoProfile -ExecutionPolicy Bypass -File "' + ScriptPath + '"';
+  Parameters := '-NoProfile -ExecutionPolicy Bypass -File "' + ScriptPath +
+    '" -StateRoot "' + ExpandConstant('{#MyStateRoot}') + '"';
   if PurgeUserData then
     Parameters := Parameters + ' -PurgeUserData';
   if (not Exec(PowerShellPath(), Parameters, ExpandConstant('{app}\payload'), SW_HIDE,

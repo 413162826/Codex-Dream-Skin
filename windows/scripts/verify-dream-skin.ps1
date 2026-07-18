@@ -1,7 +1,8 @@
 [CmdletBinding()]
 param(
   [int]$Port = 9335,
-  [string]$ScreenshotPath
+  [string]$ScreenshotPath,
+  [string]$StateRoot
 )
 
 $ErrorActionPreference = 'Stop'
@@ -12,7 +13,8 @@ $injector = Join-Path $PSScriptRoot 'injector.mjs'
 $operationLock = Enter-DreamSkinOperationLock
 $verifyExitCode = 1
 try {
-  $StatePath = Join-Path $env:LOCALAPPDATA 'CodexDreamSkin\state.json'
+  $StateRoot = Get-DreamSkinStateRoot -StateRoot $StateRoot
+  $StatePath = Join-Path $StateRoot 'state.json'
   $state = Read-DreamSkinState -Path $StatePath
   if (-not $PortExplicit -and $null -ne $state -and $state.port) { $Port = [int]$state.port }
   Assert-DreamSkinPort -Port $Port

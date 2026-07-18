@@ -7,7 +7,7 @@ $root = Split-Path -Parent $PSScriptRoot
 . (Join-Path $root 'scripts\update-core.ps1')
 
 $manifest = Read-DreamSkinVersionManifest -Path (Join-Path $root 'assets\version.json')
-if ($manifest.VersionText -cne '1.4.1' -or $manifest.Repository -cne '413162826/Codex-Dream-Skin') {
+if ($manifest.VersionText -cne '1.4.2' -or $manifest.Repository -cne '413162826/Codex-Dream-Skin') {
   throw 'Windows version manifest did not load the expected stable release identity.'
 }
 
@@ -20,12 +20,12 @@ if (-not $update.Available -or $update.LatestVersion -cne '1.5.0' -or $update.Sh
   throw 'Valid Windows installer release was not accepted.'
 }
 
-$sameAsset = 'Codex-Dream-Skin-Windows-v1.4.1-Setup.exe'
-$sameRelease = [pscustomobject](New-DreamSkinUpdateManifest -Version '1.4.1' `
+$sameAsset = 'Codex-Dream-Skin-Windows-v1.4.2-Setup.exe'
+$sameRelease = [pscustomobject](New-DreamSkinUpdateManifest -Version '1.4.2' `
   -Repository $manifest.Repository -AssetName $sameAsset -Sha256 ('b' * 64) -Size 1024)
 $same = Resolve-DreamSkinReleaseUpdate -Release $sameRelease -CurrentVersion $manifest.Version `
   -Repository $manifest.Repository
-if ($same.Available -or $same.LatestVersion -cne '1.4.1') {
+if ($same.Available -or $same.LatestVersion -cne '1.4.2') {
   throw 'Current Windows release was incorrectly treated as an update.'
 }
 
