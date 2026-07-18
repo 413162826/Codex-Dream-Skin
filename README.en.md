@@ -17,30 +17,17 @@
   Unofficial. Does not modify <code>.app</code> / <code>app.asar</code> / WindowsApps.
 </p>
 
-## Sponsors
+## About this fork
 
-<p align="center">
-  <a href="https://passion8.cc/register?aff=TuPe">
-    <img src="docs/images/sponsor-passion8.png" alt="Passion8" height="72">
-  </a>
-</p>
+This repository continues development from the original upstream project, [Fei-Away/Codex-Dream-Skin](https://github.com/Fei-Away/Codex-Dream-Skin). Our thanks go to the upstream author and every contributor for building the cross-platform theming foundation, installation scripts, presets, and safety model.
 
-<p align="center">
-  <strong>Smarter Connections · Passionate Creation</strong><br>
-  <sub>Connect AI · Power Creation</sub>
-</p>
+While preserving the original capabilities, this fork focuses on a more personalized Windows experience:
 
-<p align="center">
-  Thanks to <a href="https://passion8.cc/register?aff=TuPe"><strong>passion8.cc</strong></a> for sponsoring this project.<br>
-  Full-power AI gateway: official models, no silent downgrades, no wrapper shells.<br>
-  One-line setup for Codex / Claude Code / Grok.
-</p>
+- Adjust transparency, brightness, sharpness, ambient motion, and reading enhancement live inside Codex
+- Use animated GIF wallpapers without replacing the native Codex interface or interactions
+- Enjoy smoother controls, more reliable panel behavior, and better readability in regular conversations
 
-<p align="center">
-  <sub>
-    Theme install and API config stay separate — this project never rewrites your provider settings.
-  </sub>
-</p>
+The overview and usage guide below retain the upstream structure and are supplemented where this fork differs. See [`windows/CHANGELOG.md`](./windows/CHANGELOG.md) for details.
 
 ## Tested featured presets
 

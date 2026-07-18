@@ -17,29 +17,17 @@
   非 OpenAI 官方产品。不修改 <code>.app</code> / <code>app.asar</code> / WindowsApps。
 </p>
 
-## 赞助商
+## 关于这个分支
 
-<p align="center">
-  <a href="https://passion8.cc/register?aff=TuPe">
-    <img src="docs/images/sponsor-passion8.png" alt="Passion8" height="72">
-  </a>
-</p>
+本仓库基于上游原项目 [Fei-Away/Codex-Dream-Skin](https://github.com/Fei-Away/Codex-Dream-Skin) 继续开发。感谢上游作者与所有贡献者完成跨平台换肤基础、安装脚本、主题预设和安全边界设计。
 
-<p align="center">
-  <strong>更智能的连接 · 更热爱的创造</strong><br>
-  <sub>热爱驱动 · 无限可能 · Connect AI · Power Creation</sub>
-</p>
+在保留原有能力的基础上，这个分支重点增强了 Windows 使用体验：
 
-<p align="center">
-  感谢 <a href="https://passion8.cc/register?aff=TuPe"><strong>passion8.cc</strong></a> 赞助本项目。<br>
-  满血 AI 中转：官方模型直连，无降智、无套壳；一行配置接入 Codex / Claude Code / Grok。
-</p>
+- 在 Codex 内实时调节透明度、亮度、清晰度、动态氛围和正文增强
+- 支持 GIF 动态壁纸，同时保留 Codex 原生界面与交互
+- 改进控制面板交互、调节流畅度和普通对话的阅读体验
 
-<p align="center">
-  <sub>
-    换肤与 API 配置互相独立，本项目不会自动改写你的模型供应商设置。
-  </sub>
-</p>
+下方基础介绍与使用说明继续沿用上游项目结构，并按本分支的实际功能补充。详细更新见 [`windows/CHANGELOG.md`](./windows/CHANGELOG.md)。
 
 ## 实测精选预设
 
