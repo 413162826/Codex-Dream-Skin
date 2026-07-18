@@ -82,9 +82,9 @@ The compact **Appearance** button in the lower-right corner of Codex provides li
 
 - Surface transparency, wallpaper brightness, and wallpaper sharpness.
 - Ambient motion and long-form reading enhancement.
-- A per-theme wallpaper override, including animated GIF files.
+- Unified wallpaper management with four bundled presets—Gothic Void, Fortune Workshop, Red Horizon, and Sage Conservatory—plus custom PNG, JPEG, WebP, GIF, or AVIF uploads.
 
-Appearance values persist in the current Codex profile. An in-app wallpaper override is stored locally under the active theme ID and survives renderer reloads. **Restore current theme** removes that override and returns to the wallpaper selected by the tray or theme store.
+Appearance values persist in the current Codex profile. The selected preset or custom wallpaper is stored locally under the active theme ID and survives renderer reloads. **Restore current theme** removes that override and returns to the wallpaper selected by the tray or theme store.
 
 ## Restore and remove shortcuts
 

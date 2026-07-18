@@ -1,4 +1,4 @@
-((cssText, artDataUrl, rawConfig) => {
+((cssText, artDataUrl, rawConfig, rawWallpaperPresets) => {
   const STATE_KEY = "__CODEX_DREAM_SKIN_STATE__";
   const STYLE_ID = "codex-dream-skin-style";
   const CHROME_ID = "codex-dream-skin-chrome";
@@ -136,6 +136,35 @@
     };
   };
 
+  const normalizeWallpaperPresets = (value) => {
+    if (!Array.isArray(value)) return [];
+    if (value.length > 12) throw new Error("预置壁纸数量超过限制");
+    const ids = new Set();
+    return value.map((item) => {
+      const id = typeof item?.id === "string" ? item.id.trim() : "";
+      const name = typeof item?.name === "string" ? item.name.trim() : "";
+      const dataUrl = typeof item?.dataUrl === "string" ? item.dataUrl : "";
+      if (!/^[a-z0-9][a-z0-9-]{0,63}$/u.test(id) || ids.has(id)) {
+        throw new Error("预置壁纸标识无效");
+      }
+      if (!name || name.length > 40) throw new Error(`预置壁纸 ${id} 名称无效`);
+      if (!/^data:image\/(?:png|jpeg|webp|gif|avif);base64,/u.test(dataUrl)) {
+        throw new Error(`预置壁纸 ${id} 数据无效`);
+      }
+      ids.add(id);
+      return { id, name, dataUrl };
+    });
+  };
+  const dataUrlToObjectUrl = (value) => {
+    const comma = value.indexOf(",");
+    if (comma < 1) throw new Error("壁纸数据格式无效");
+    const binary = atob(value.slice(comma + 1));
+    const bytes = new Uint8Array(binary.length);
+    for (let index = 0; index < binary.length; index += 1) bytes[index] = binary.charCodeAt(index);
+    const mime = /^data:([^;,]+)/u.exec(value)?.[1] || "image/png";
+    return URL.createObjectURL(new Blob([bytes], { type: mime }));
+  };
+
   const previous = window[STATE_KEY];
   if (previous?.observer) previous.observer.disconnect();
   if (previous?.timer) clearInterval(previous.timer);
@@ -155,16 +184,16 @@
     previous?.artUrl,
     previous?.injectedArtUrl,
     previous?.localArtUrl,
+    ...(previous?.presetArtUrls || []),
   ].filter(Boolean))) URL.revokeObjectURL(url);
   document.getElementById(CONTROLS_ID)?.remove();
-  const injectedArtUrl = (() => {
-    const comma = artDataUrl.indexOf(",");
-    const binary = atob(artDataUrl.slice(comma + 1));
-    const bytes = new Uint8Array(binary.length);
-    for (let index = 0; index < binary.length; index += 1) bytes[index] = binary.charCodeAt(index);
-    const mime = /^data:([^;,]+)/.exec(artDataUrl)?.[1] || "image/png";
-    return URL.createObjectURL(new Blob([bytes], { type: mime }));
-  })();
+  const injectedArtUrl = dataUrlToObjectUrl(artDataUrl);
+  const wallpaperPresets = normalizeWallpaperPresets(rawWallpaperPresets).map((preset) => ({
+    id: preset.id,
+    name: preset.name,
+    url: dataUrlToObjectUrl(preset.dataUrl),
+  }));
+  const wallpaperPresetById = new Map(wallpaperPresets.map((preset) => [preset.id, preset]));
   let localArtUrl = null;
   let activeArtUrl = injectedArtUrl;
   const config = normalizeConfig(rawConfig);
@@ -280,7 +309,7 @@
   const existingStyle = document.getElementById(STYLE_ID);
   if (existingStyle) {
     existingStyle.textContent = cssText;
-    existingStyle.dataset.dreamVersion = "5";
+    existingStyle.dataset.dreamVersion = "7";
   }
 
   const analyzeArt = (url = activeArtUrl) => new Promise((resolve) => {
@@ -404,13 +433,35 @@
     image.src = url;
   });
 
-  const wallpaperState = { name: config.themeName, error: false };
+  const wallpaperState = {
+    name: config.themeName,
+    error: false,
+    kind: "theme",
+    presetId: null,
+  };
   const wallpaperStoreKey = `theme:${config.themeId}`;
   let artGeneration = 0;
   const isCurrentInstall = () =>
     window[STATE_KEY]?.installToken === installToken && !window.__CODEX_DREAM_SKIN_DISABLED__;
+  const syncWallpaperSelection = () => {
+    const controls = document.getElementById(CONTROLS_ID);
+    if (!controls || typeof controls.querySelectorAll !== "function") return;
+    for (const button of controls.querySelectorAll("[data-dream-preset-id]")) {
+      const selected = wallpaperState.kind === "preset" &&
+        button.dataset.dreamPresetId === wallpaperState.presetId;
+      button.classList.toggle("is-active", selected);
+      button.setAttribute("aria-pressed", String(selected));
+    }
+    const customButton = controls.querySelector("[data-dream-wallpaper-select]");
+    if (customButton) {
+      const selected = wallpaperState.kind === "custom";
+      customButton.classList.toggle("is-active", selected);
+      customButton.setAttribute("aria-pressed", String(selected));
+    }
+  };
   const updateWallpaperStatus = () => {
     if (!isCurrentInstall()) return;
+    syncWallpaperSelection();
     const output = document.querySelector?.("[data-dream-wallpaper-status]");
     if (!output) return;
     output.value = wallpaperState.name;
@@ -501,12 +552,26 @@
     if (!isCurrentInstall()) return false;
     if (localArtUrl) URL.revokeObjectURL(localArtUrl);
     localArtUrl = null;
-    if (record?.blob instanceof Blob) {
+    if (record?.kind === "preset") {
+      const preset = wallpaperPresetById.get(record.presetId);
+      if (!preset) throw new Error("已保存的预置壁纸不存在");
+      wallpaperState.kind = "preset";
+      wallpaperState.presetId = preset.id;
+      wallpaperState.name = preset.name;
+      wallpaperState.error = false;
+      refreshProfileForArt(preset.url);
+    } else if (record?.blob instanceof Blob) {
       localArtUrl = URL.createObjectURL(record.blob);
+      wallpaperState.kind = "custom";
+      wallpaperState.presetId = null;
       wallpaperState.name = record.name || "应用内壁纸";
       wallpaperState.error = false;
       refreshProfileForArt(localArtUrl);
+    } else if (record) {
+      throw new Error("已保存的壁纸记录无效");
     } else {
+      wallpaperState.kind = "theme";
+      wallpaperState.presetId = null;
       wallpaperState.name = config.themeName;
       wallpaperState.error = false;
       refreshProfileForArt(injectedArtUrl);
@@ -584,12 +649,19 @@
           <span class="dream-switch" aria-hidden="true"></span>
           <output data-dream-output="readingMode"></output>
         </label>
-        <div class="dream-wallpaper-row">
-          <input data-dream-wallpaper-input type="file"
-            accept="image/png,image/jpeg,image/webp,image/gif,image/avif">
-          <button data-dream-wallpaper-select type="button">更换壁纸</button>
-          <output data-dream-wallpaper-status aria-live="polite"></output>
-        </div>
+        <section class="dream-wallpaper-manager" aria-label="壁纸管理">
+          <header class="dream-wallpaper-manager__header">
+            <strong>壁纸</strong>
+            <span>${wallpaperPresets.length} 个预置</span>
+          </header>
+          <div class="dream-wallpaper-presets" data-dream-wallpaper-presets></div>
+          <div class="dream-wallpaper-row">
+            <input data-dream-wallpaper-input type="file"
+              accept="image/png,image/jpeg,image/webp,image/gif,image/avif">
+            <button data-dream-wallpaper-select type="button" aria-pressed="false">上传自定义</button>
+            <output data-dream-wallpaper-status aria-live="polite"></output>
+          </div>
+        </section>
         <button class="dream-controls__reset" type="button">恢复当前主题</button>
       </section>
       <button class="dream-controls__toggle" type="button" title="调节 Dream Skin"
@@ -605,6 +677,50 @@
     const toggle = controls.querySelector(".dream-controls__toggle");
     const wallpaperInput = controls.querySelector("[data-dream-wallpaper-input]");
     const wallpaperSelect = controls.querySelector("[data-dream-wallpaper-select]");
+    const presetGrid = controls.querySelector("[data-dream-wallpaper-presets]");
+    const presetButtons = [];
+    const setWallpaperControlsBusy = (busy) => {
+      wallpaperSelect.disabled = busy;
+      for (const button of presetButtons) button.disabled = busy;
+    };
+    for (const preset of wallpaperPresets) {
+      const button = document.createElement("button");
+      button.type = "button";
+      button.className = "dream-wallpaper-preset";
+      button.dataset.dreamPresetId = preset.id;
+      button.setAttribute("aria-label", `切换到${preset.name}`);
+      button.setAttribute("aria-pressed", "false");
+      button.title = preset.name;
+      button.style.setProperty("--dream-preset-art", `url("${preset.url}")`);
+      const label = document.createElement("span");
+      label.textContent = preset.name;
+      button.appendChild(label);
+      button.addEventListener("click", async () => {
+        setWallpaperControlsBusy(true);
+        wallpaperState.name = "正在切换…";
+        wallpaperState.error = false;
+        updateWallpaperStatus();
+        try {
+          const record = {
+            kind: "preset",
+            presetId: preset.id,
+            name: preset.name,
+            updatedAt: Date.now(),
+          };
+          await writeSavedWallpaper(record);
+          if (!isCurrentInstall()) return;
+          applyLocalWallpaper(record);
+        } catch (error) {
+          wallpaperState.name = error?.message || "预置壁纸切换失败";
+          wallpaperState.error = true;
+          updateWallpaperStatus();
+        } finally {
+          setWallpaperControlsBusy(false);
+        }
+      });
+      presetButtons.push(button);
+      presetGrid.appendChild(button);
+    }
     const syncControl = (key) => {
       const input = controls.querySelector(`[data-dream-setting="${key}"]`);
       const output = controls.querySelector(`[data-dream-output="${key}"]`);
@@ -654,7 +770,7 @@
       const file = wallpaperInput.files?.[0];
       wallpaperInput.value = "";
       if (!file) return;
-      wallpaperSelect.disabled = true;
+      setWallpaperControlsBusy(true);
       wallpaperState.name = "正在保存…";
       wallpaperState.error = false;
       updateWallpaperStatus();
@@ -662,6 +778,7 @@
         await validateLocalWallpaper(file);
         if (!isCurrentInstall()) return;
         const record = {
+          kind: "custom",
           blob: file.slice(0, file.size, file.type),
           name: file.name,
           type: file.type,
@@ -676,7 +793,7 @@
         wallpaperState.error = true;
         updateWallpaperStatus();
       } finally {
-        wallpaperSelect.disabled = false;
+        setWallpaperControlsBusy(false);
       }
     });
     controls.querySelector(".dream-controls__reset").addEventListener("click", async () => {
@@ -825,9 +942,9 @@
       style.id = STYLE_ID;
       (document.head || root).appendChild(style);
     }
-    if (style.dataset.dreamVersion !== "6") {
+    if (style.dataset.dreamVersion !== "7") {
       style.textContent = cssText;
-      style.dataset.dreamVersion = "6";
+      style.dataset.dreamVersion = "7";
     }
 
     const home = document.querySelector('[role="main"]:has([data-testid="home-icon"])');
@@ -889,6 +1006,7 @@
       state?.artUrl,
       state?.injectedArtUrl,
       state?.localArtUrl,
+      ...(state?.presetArtUrls || []),
     ].filter(Boolean))) URL.revokeObjectURL(url);
     delete window[STATE_KEY];
     return true;
@@ -924,14 +1042,16 @@
     artUrl: injectedArtUrl,
     injectedArtUrl,
     localArtUrl,
+    presetArtUrls: wallpaperPresets.map((preset) => preset.url),
     activeArtUrl,
     profile,
     config,
     userSettings,
     installToken,
-    version: "1.3.3",
+    version: "1.4.0",
   };
   ensure();
+  updateWallpaperStatus();
   refreshProfileForArt(activeArtUrl);
   void readSavedWallpaper().then((record) => {
     if (!isCurrentInstall()) return;
@@ -941,5 +1061,10 @@
     wallpaperState.error = true;
     updateWallpaperStatus();
   });
-  return { installed: true, version: "1.3.3", adaptive: true, controls: true };
-})(__DREAM_CSS_JSON__, __DREAM_ART_JSON__, __DREAM_THEME_JSON__)
+  return { installed: true, version: "1.4.0", adaptive: true, controls: true };
+})(
+  __DREAM_CSS_JSON__,
+  __DREAM_ART_JSON__,
+  __DREAM_THEME_JSON__,
+  __DREAM_WALLPAPER_PRESETS_JSON__,
+)

@@ -8,10 +8,11 @@ const here = path.dirname(fileURLToPath(import.meta.url));
 const windowsRoot = path.resolve(here, "..");
 const template = await fs.readFile(path.join(windowsRoot, "assets", "renderer-inject.js"), "utf8");
 const css = await fs.readFile(path.join(windowsRoot, "assets", "dream-skin.css"), "utf8");
-const buildPayload = (config = {}) => template
+const buildPayload = (config = {}, wallpaperPresets = []) => template
   .replace("__DREAM_CSS_JSON__", JSON.stringify(".fixture { color: blue; }"))
   .replace("__DREAM_ART_JSON__", JSON.stringify("data:image/png;base64,AA=="))
-  .replace("__DREAM_THEME_JSON__", JSON.stringify(config));
+  .replace("__DREAM_THEME_JSON__", JSON.stringify(config))
+  .replace("__DREAM_WALLPAPER_PRESETS_JSON__", JSON.stringify(wallpaperPresets));
 const payload = buildPayload();
 
 assert.doesNotMatch(
@@ -266,7 +267,7 @@ function createFixture({
 const main = createFixture({ shellPresent: true });
 const mainResult = vm.runInNewContext(payload, main.context);
 assert.equal(mainResult.installed, true);
-assert.equal(mainResult.version, "1.3.3");
+assert.equal(mainResult.version, "1.4.0");
 assert.equal(main.rootClasses.has("codex-dream-skin"), true);
 assert.equal(main.rootStyles.get("--dream-art"), 'url("blob:fixture-1")');
 assert.equal(main.nodes.has("codex-dream-skin-style"), true);
@@ -303,6 +304,25 @@ assert.equal(reinjected.rootStyles.get("--dream-art"), 'url("blob:fixture-2")');
 assert.deepEqual(reinjected.revokedUrls, ["blob:fixture-1"]);
 assert.equal(firstState.cleanup(), false);
 assert.equal(secondState.cleanup(), true);
+
+const presetCatalog = [
+  { id: "gothic-void", name: "哥特虚空", dataUrl: "data:image/jpeg;base64,AA==" },
+  { id: "fortune-workshop", name: "财神工坊", dataUrl: "data:image/jpeg;base64,AA==" },
+  { id: "red-horizon", name: "红白科幻", dataUrl: "data:image/jpeg;base64,AA==" },
+  { id: "sage-conservatory", name: "淡绿清岚", dataUrl: "data:image/jpeg;base64,AA==" },
+];
+const presetFixture = createFixture({ shellPresent: true });
+const presetResult = vm.runInNewContext(buildPayload({}, presetCatalog), presetFixture.context);
+assert.equal(presetResult.version, "1.4.0");
+assert.equal(presetFixture.context.window.__CODEX_DREAM_SKIN_STATE__.presetArtUrls.length, 4);
+assert.equal(presetFixture.context.window.__CODEX_DREAM_SKIN_STATE__.cleanup(), true);
+assert.deepEqual(presetFixture.revokedUrls, [
+  "blob:fixture-1",
+  "blob:fixture-2",
+  "blob:fixture-3",
+  "blob:fixture-4",
+  "blob:fixture-5",
+]);
 
 const auxiliary = createFixture({ shellPresent: false, staleSkin: true });
 const auxiliaryResult = vm.runInNewContext(payload, auxiliary.context);
@@ -425,7 +445,7 @@ const userCustomized = createFixture({
   },
 });
 const customizedResult = vm.runInNewContext(payload, userCustomized.context);
-assert.equal(customizedResult.version, "1.3.3");
+assert.equal(customizedResult.version, "1.4.0");
 assert.equal(userCustomized.rootClasses.has("dream-motion-disabled"), true);
 assert.equal(userCustomized.rootClasses.has("dream-reading-disabled"), true);
 assert.equal(userCustomized.rootStyles.get("--dream-user-control-alpha"), "58%");
@@ -435,6 +455,10 @@ assert.equal(userCustomized.rootStyles.get("--dream-wallpaper-brightness"), "0.5
 assert.equal(userCustomized.rootStyles.get("--dream-wallpaper-blur"), "4.00px");
 
 assert.match(template, /data-dream-setting="transparency"/);
+assert.match(template, /data-dream-wallpaper-presets/);
+assert.match(template, /data-dream-preset-id/);
+assert.match(template, /kind: "preset"/);
+assert.match(template, /kind: "custom"/);
 assert.match(template, /image\/gif,image\/avif/);
 assert.match(template, /MAX_LOCAL_WALLPAPER_DIMENSION = 16384/);
 assert.match(template, /MAX_LOCAL_WALLPAPER_PIXELS = 50_000_000/);
@@ -448,6 +472,8 @@ assert.match(css, /data-content-search-unit-key\$=":assistant"/);
 assert.doesNotMatch(css, /dream-reading-enabled \.dream-task\s+:where/);
 assert.match(css, /@keyframes dream-wallpaper-drift/);
 assert.match(css, /#codex-dream-skin-controls/);
+assert.match(css, /\.dream-wallpaper-presets/);
+assert.match(css, /\.dream-wallpaper-preset\.is-active/);
 assert.match(css, /will-change: opacity/);
 assert.match(css, /#codex-dream-skin-controls\s*\{[^}]*contain: style/s);
 

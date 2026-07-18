@@ -7,11 +7,18 @@ import { readImageMetadata } from "./image-metadata.mjs";
 const scriptPath = fileURLToPath(import.meta.url);
 const here = path.dirname(scriptPath);
 const root = path.resolve(here, "..");
-const SKIN_VERSION = "1.3.3";
+const SKIN_VERSION = "1.4.0";
 const MAX_ART_BYTES = 16 * 1024 * 1024;
+const MAX_BUNDLED_WALLPAPER_BYTES = 4 * 1024 * 1024;
 const STRONG_THEME_AUDIT_MS = 30000;
 const LOOPBACK_HOSTS = new Set(["127.0.0.1", "localhost", "[::1]", "::1"]);
 const BROWSER_ID_PATTERN = /^[A-Za-z0-9._-]{1,200}$/;
+const BUNDLED_WALLPAPERS = Object.freeze([
+  { id: "gothic-void", name: "哥特虚空", file: "gothic-void.jpg" },
+  { id: "fortune-workshop", name: "财神工坊", file: "fortune-workshop.jpg" },
+  { id: "red-horizon", name: "红白科幻", file: "red-horizon.jpg" },
+  { id: "sage-conservatory", name: "淡绿清岚", file: "sage-conservatory.jpg" },
+]);
 
 class CdpIdentityMismatchError extends Error {}
 
@@ -390,9 +397,32 @@ async function loadTheme(themeDir) {
 
 async function loadPayload(themeDir = path.join(root, "assets"), candidateTheme = null) {
   const loadedTheme = candidateTheme ?? await loadTheme(themeDir);
-  const [css, template] = await Promise.all([
+  const wallpapersRoot = path.join(root, "assets", "wallpapers");
+  const [css, template, wallpaperPresets] = await Promise.all([
     fs.readFile(path.join(root, "assets", "dream-skin.css"), "utf8"),
     fs.readFile(path.join(root, "assets", "renderer-inject.js"), "utf8"),
+    Promise.all(BUNDLED_WALLPAPERS.map(async (preset) => {
+      const imagePath = path.join(wallpapersRoot, preset.file);
+      const stat = await fs.stat(imagePath);
+      if (!stat.isFile() || stat.size < 1 || stat.size > MAX_BUNDLED_WALLPAPER_BYTES) {
+        throw new Error(`Bundled wallpaper ${preset.file} must be a 1 byte to 4 MB file`);
+      }
+      const bytes = await fs.readFile(imagePath);
+      const extension = path.extname(imagePath).toLowerCase();
+      const metadata = readImageMetadata(bytes, extension);
+      if (!metadata) {
+        throw new Error(`Bundled wallpaper ${preset.file} has invalid image metadata`);
+      }
+      const mime = extension === ".jpg" || extension === ".jpeg" ? "image/jpeg"
+        : extension === ".webp" ? "image/webp"
+          : extension === ".gif" ? "image/gif"
+            : extension === ".avif" ? "image/avif" : "image/png";
+      return {
+        id: preset.id,
+        name: preset.name,
+        dataUrl: `data:${mime};base64,${bytes.toString("base64")}`,
+      };
+    })),
   ]);
   const extension = path.extname(loadedTheme.imagePath).toLowerCase();
   const mime = extension === ".jpg" || extension === ".jpeg" ? "image/jpeg"
@@ -403,9 +433,10 @@ async function loadPayload(themeDir = path.join(root, "assets"), candidateTheme 
   const payload = template
     .replace("__DREAM_CSS_JSON__", JSON.stringify(css))
     .replace("__DREAM_ART_JSON__", JSON.stringify(artDataUrl))
-    .replace("__DREAM_THEME_JSON__", JSON.stringify(loadedTheme.theme));
+    .replace("__DREAM_THEME_JSON__", JSON.stringify(loadedTheme.theme))
+    .replace("__DREAM_WALLPAPER_PRESETS_JSON__", JSON.stringify(wallpaperPresets));
   const { imageBytes: _imageBytes, ...themeState } = loadedTheme;
-  return { ...themeState, payload };
+  return { ...themeState, payload, wallpaperPresetCount: wallpaperPresets.length };
 }
 
 async function fileExists(filePath) {
@@ -993,7 +1024,12 @@ if (path.resolve(process.argv[1] || "") === path.resolve(scriptPath)) {
   console.log(JSON.stringify({ pass: true, version: SKIN_VERSION, test: "loopback-cdp-validation" }));
   } else if (options.mode === "check-payload") {
     const loaded = await loadPayload(options.themeDir);
-    const unresolved = ["__DREAM_CSS_JSON__", "__DREAM_ART_JSON__", "__DREAM_THEME_JSON__"]
+    const unresolved = [
+      "__DREAM_CSS_JSON__",
+      "__DREAM_ART_JSON__",
+      "__DREAM_THEME_JSON__",
+      "__DREAM_WALLPAPER_PRESETS_JSON__",
+    ]
       .some((placeholder) => loaded.payload.includes(placeholder));
     if (unresolved) {
       throw new Error("Payload placeholders were not fully replaced");
@@ -1006,6 +1042,7 @@ if (path.resolve(process.argv[1] || "") === path.resolve(scriptPath)) {
       appearance: loaded.theme.appearance,
       art: loaded.theme.art,
       artMetadata: loaded.theme.artMetadata ?? null,
+      wallpaperPresetCount: loaded.wallpaperPresetCount,
     }));
   } else if (options.mode === "watch") await runWatch(options);
   else await runOneShot(options);

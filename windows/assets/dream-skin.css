@@ -808,10 +808,12 @@ html.codex-dream-skin.dream-motion-disabled #codex-dream-skin-chrome {
   position: absolute;
   right: 0;
   bottom: 42px;
-  width: 268px;
+  width: 312px;
+  max-height: calc(100vh - 72px);
   box-sizing: border-box;
   padding: 14px;
-  overflow: hidden;
+  overflow-x: hidden;
+  overflow-y: auto;
   border: 1px solid var(--dream-line);
   border-radius: 14px;
   color: var(--dream-text);
@@ -844,6 +846,7 @@ html.codex-dream-skin.dream-motion-disabled #codex-dream-skin-chrome {
 .dream-controls__header span,
 .dream-control-row output,
 .dream-switch-row output,
+.dream-wallpaper-manager__header span,
 .dream-wallpaper-row output {
   color: var(--dream-text-muted);
   font-size: 11px;
@@ -918,14 +921,106 @@ html.codex-dream-skin.dream-motion-disabled #codex-dream-skin-chrome {
   outline-offset: 2px;
 }
 
-.dream-wallpaper-row {
-  display: grid;
-  grid-template-columns: auto minmax(0, 1fr);
-  gap: 8px;
-  align-items: center;
+.dream-wallpaper-manager {
   margin-top: 8px;
   padding-top: 10px;
   border-top: 1px solid var(--dream-line-soft);
+}
+
+.dream-wallpaper-manager__header {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  margin-bottom: 8px;
+}
+
+.dream-wallpaper-manager__header strong {
+  font-size: 12px;
+  font-weight: 650;
+}
+
+.dream-wallpaper-presets {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 8px;
+}
+
+.dream-wallpaper-preset {
+  position: relative;
+  min-width: 0;
+  aspect-ratio: 16 / 9;
+  overflow: hidden;
+  padding: 0;
+  border: 1px solid var(--dream-line);
+  border-radius: 9px;
+  color: white;
+  background: color-mix(in oklab, var(--dream-canvas) 72%, transparent);
+  cursor: pointer;
+  isolation: isolate;
+  transition: border-color 140ms cubic-bezier(.16, 1, .3, 1),
+    box-shadow 140ms cubic-bezier(.16, 1, .3, 1),
+    transform 140ms cubic-bezier(.16, 1, .3, 1);
+}
+
+.dream-wallpaper-preset::before {
+  content: "";
+  position: absolute;
+  z-index: -2;
+  inset: 0;
+  background-image: var(--dream-preset-art);
+  background-position: center;
+  background-size: cover;
+  transform: scale(1.015);
+}
+
+.dream-wallpaper-preset::after {
+  content: "";
+  position: absolute;
+  z-index: -1;
+  inset: 0;
+  background: linear-gradient(to top, rgb(3 8 14 / 78%) 0%, transparent 66%);
+}
+
+.dream-wallpaper-preset span {
+  position: absolute;
+  right: 7px;
+  bottom: 6px;
+  left: 7px;
+  overflow: hidden;
+  font-size: 11px;
+  font-weight: 620;
+  text-align: left;
+  text-overflow: ellipsis;
+  text-shadow: 0 1px 4px rgb(0 0 0 / 62%);
+  white-space: nowrap;
+}
+
+.dream-wallpaper-preset:hover {
+  border-color: color-mix(in oklab, var(--dream-accent) 64%, var(--dream-line));
+  transform: translateY(-1px);
+}
+
+.dream-wallpaper-preset.is-active {
+  border-color: var(--dream-accent);
+  box-shadow: 0 0 0 2px color-mix(in oklab, var(--dream-accent) 30%, transparent);
+}
+
+.dream-wallpaper-preset:focus-visible {
+  outline: 2px solid var(--dream-accent);
+  outline-offset: 2px;
+}
+
+.dream-wallpaper-preset:disabled {
+  cursor: wait;
+  opacity: .58;
+}
+
+.dream-wallpaper-row {
+  display: grid;
+  grid-template-columns: 104px minmax(0, 1fr);
+  gap: 8px;
+  align-items: center;
+  margin-top: 8px;
 }
 
 .dream-wallpaper-row input[type="file"] {
@@ -971,6 +1066,11 @@ html.codex-dream-skin.dream-motion-disabled #codex-dream-skin-chrome {
 .dream-wallpaper-row button:disabled {
   cursor: wait;
   opacity: .55;
+}
+
+.dream-wallpaper-row button.is-active {
+  border-color: var(--dream-accent);
+  background: color-mix(in oklab, var(--dream-accent) 22%, transparent);
 }
 
 .dream-wallpaper-row output {
