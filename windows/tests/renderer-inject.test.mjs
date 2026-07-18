@@ -280,7 +280,7 @@ assert.equal(main.rootClasses.has("dream-reading-enabled"), true);
 assert.equal(main.rootStyles.has("--dream-user-main-alpha"), false);
 assert.equal(main.rootStyles.get("--dream-user-control-alpha"), "72%");
 assert.equal(main.shellMain.children[0].style.opacity, "0.44");
-assert.equal(main.shellSidebar.children[0].style.opacity, "0.44");
+assert.equal(main.shellSidebar.children[0].style.opacity, "0.75");
 assert.equal(main.rootStyles.get("--dream-wallpaper-brightness"), "1.00");
 assert.equal(main.rootStyles.get("--dream-wallpaper-blur"), "0.00px");
 assert.equal(main.routeClasses.has("dream-task"), true);
@@ -450,7 +450,7 @@ assert.equal(userCustomized.rootClasses.has("dream-motion-disabled"), true);
 assert.equal(userCustomized.rootClasses.has("dream-reading-disabled"), true);
 assert.equal(userCustomized.rootStyles.get("--dream-user-control-alpha"), "58%");
 assert.equal(userCustomized.shellMain.children[0].style.opacity, "0.26");
-assert.equal(userCustomized.shellSidebar.children[0].style.opacity, "0.26");
+assert.equal(userCustomized.shellSidebar.children[0].style.opacity, "0.62");
 assert.equal(userCustomized.rootStyles.get("--dream-wallpaper-brightness"), "0.55");
 assert.equal(userCustomized.rootStyles.get("--dream-wallpaper-blur"), "4.00px");
 
@@ -475,6 +475,9 @@ assert.match(css, /#codex-dream-skin-controls/);
 assert.match(css, /\.dream-wallpaper-presets/);
 assert.match(css, /\.dream-wallpaper-preset\.is-active/);
 assert.match(css, /will-change: opacity/);
+assert.match(css, /--dream-sidebar-immersive/);
+assert.match(css, /aside\.app-shell-left-panel \[aria-current="page"\]/);
+assert.match(css, /aside\.app-shell-left-panel \[data-thread-title\]/);
 assert.match(css, /#codex-dream-skin-controls\s*\{[^}]*contain: style/s);
 
 console.log("PASS: renderer applies adaptive theme metadata and preserves transparent auxiliary windows.");

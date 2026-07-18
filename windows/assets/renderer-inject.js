@@ -249,7 +249,9 @@
     const mainOpacity = surfaceVeils.main?.parentElement?.classList.contains("dream-home-shell")
       ? mainAlpha
       : clamp(mainAlpha + .14, .24, .78);
-    const sidebarOpacity = clamp(mainAlpha + .14, .2, .84);
+    // The navigation rail needs its own readability floor. Treating it like
+    // the content surface lets bright wallpaper details compete with folders.
+    const sidebarOpacity = clamp(mainAlpha + .45, .62, .92);
     const setVeilOpacity = (veil, value) => {
       if (!veil?.style) return;
       const opacity = clamp(value).toFixed(2);
